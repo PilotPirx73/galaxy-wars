@@ -216,10 +216,11 @@ function newLevel(){
     if(pos)S.planets.push({type:'bh',...pos,r:14,m:62*62*62*1.7,revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});
   }
   for(let i=0;i<S.nPlanets;i++){
-    const r=rnd(22,70),pos=place(r,260,W-260,0,H,35,90);
+    const r=rnd(22,70),look=planetLook(r);
+    // Ringe zählen für die Physik nicht, sollen aber nicht in Nachbarplaneten ragen
+    const pos=place(look.ring?r*1.45:r,260,W-260,0,H,35,90);
     if(!pos)continue;
-    const dens=rnd(.7,1.35);
-    S.planets.push({type:'planet',...pos,r,m:r*r*r*dens,h:Math.floor(rnd(0,360)),dens,bands:Math.random()<.5,tilt:rnd(-.4,.4)});
+    S.planets.push({type:'planet',...pos,r,m:r*r*r*look.dens,...look});
   }
   S.stars=Array.from({length:280},()=>({x:Math.random(),y:Math.random(),r:rnd(.3,1.4),a:rnd(.25,1)}));
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
@@ -306,23 +307,186 @@ function drawBH(c,p,t,lw){
   c.restore();
 }
 
-function drawPlanet(b,p){
-  const glow=b.createRadialGradient(p.x,p.y,p.r*.9,p.x,p.y,p.r*1.6);
-  glow.addColorStop(0,`hsla(${p.h},80%,60%,${.12+.1*p.dens})`);glow.addColorStop(1,`hsla(${p.h},80%,60%,0)`);
-  b.fillStyle=glow;b.beginPath();b.arc(p.x,p.y,p.r*1.6,0,7);b.fill();
-  const g=b.createRadialGradient(p.x-p.r*.4,p.y-p.r*.4,p.r*.1,p.x,p.y,p.r);
-  g.addColorStop(0,`hsl(${p.h},70%,72%)`);g.addColorStop(.6,`hsl(${p.h},50%,40%)`);g.addColorStop(1,`hsl(${p.h},60%,12%)`);
-  b.fillStyle=g;b.beginPath();b.arc(p.x,p.y,p.r,0,7);b.fill();
-  b.save();b.beginPath();b.arc(p.x,p.y,p.r,0,7);b.clip();
-  if(p.bands){
-    b.translate(p.x,p.y);b.rotate(p.tilt);
-    for(let i=-3;i<=3;i++){b.fillStyle=`hsla(${(p.h+30)%360},60%,${i%2?70:25}%,.12)`;b.fillRect(-p.r,i*p.r*.28-p.r*.07,p.r*2,p.r*.14);}
-  }else{
-    let seed=p.x*7+p.y*13;const rr=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
-    for(let i=0;i<5;i++){const a=rr()*7,d=rr()*p.r*.7,cr=p.r*(.08+rr()*.14);
-      b.fillStyle='rgba(0,0,0,.18)';b.beginPath();b.arc(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,cr,0,7);b.fill();}
+/* ---------- Planeten: Typen und prozedurale Oberflächen ---------- */
+// Typ, Dichte und Ring werden beim Erzeugen der Karte festgelegt (und online mitgeschickt).
+function planetLook(r){
+  let kind;
+  if(r>=46&&Math.random()<.7)kind='gas';
+  else{const x=Math.random();kind=x<.3?'terran':x<.55?'desert':x<.72?'ice':x<.84?'lava':'barren';}
+  const dens={gas:rnd(.55,.8),terran:rnd(1,1.25),desert:rnd(.95,1.2),ice:rnd(.8,1),lava:rnd(1.2,1.4),barren:rnd(1,1.3)}[kind];
+  const axis=rnd(-.55,.55);
+  // Ringe nur optisch – Schüsse fliegen hindurch
+  const ring=Math.random()<(kind==='gas'?.55:.08)
+    ?{inner:rnd(1.3,1.55),outer:rnd(1.95,2.4),flat:rnd(.2,.34),seed:(Math.random()*1e9)|0}:null;
+  return{kind,dens,ring,axis,seed:(Math.random()*1e9)|0,pal:Math.floor(Math.random()*4),
+    storm:{x:rnd(-.35,.35),y:(Math.random()<.5?-1:1)*rnd(.15,.45)}};
+}
+
+// 3D-Rauschen (Value Noise) für die Oberflächen
+function hash3(x,y,z,s){
+  let h=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(z,1274126177)^Math.imul(s,1442695041);
+  h=Math.imul(h^(h>>>13),1274126177);
+  return((h^(h>>>16))>>>0)/4294967296;
+}
+function vnoise(x,y,z,s){
+  const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-xi,yf=y-yi,zf=z-zi;
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);
+  const a=hash3(xi,yi,zi,s),b=hash3(xi+1,yi,zi,s),c=hash3(xi,yi+1,zi,s),d=hash3(xi+1,yi+1,zi,s);
+  const e=hash3(xi,yi,zi+1,s),f=hash3(xi+1,yi,zi+1,s),g=hash3(xi,yi+1,zi+1,s),h=hash3(xi+1,yi+1,zi+1,s);
+  const x1=a+(b-a)*u,x2=c+(d-c)*u,x3=e+(f-e)*u,x4=g+(h-g)*u;
+  const y1=x1+(x2-x1)*v,y2=x3+(x4-x3)*v;
+  return y1+(y2-y1)*w;
+}
+function fbm(x,y,z,s,oct){
+  let t=0,a=.5,f=1,n=0;
+  for(let i=0;i<oct;i++){t+=a*vnoise(x*f,y*f,z*f,s+i*101);n+=a;f*=2.03;a*=.5;}
+  return t/n;
+}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const mixc=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const GAS_PAL=[
+  [[205,175,135],[165,115,75],[235,220,195],[190,85,55]],    // jupiterartig
+  [[232,212,165],[200,176,124],[246,236,204],[205,160,95]],  // saturnartig
+  [[62,95,205],[40,62,165],[115,155,235],[230,240,255]],     // neptunartig
+  [[150,212,222],[118,188,204],[195,236,242],[235,250,252]], // uranusartig
+];
+const ATMO={terran:[110,170,255],gas:null,ice:[180,220,255]};
+
+// Licht kommt von der Sonne (falls vorhanden), sonst von links oben
+function lightDir(p){
+  let x=-.55,y=-.6,z=.58;
+  const sun=S.planets.find(b=>b.type==='sun');
+  if(sun){const dx=sun.x-p.x,dy=sun.y-p.y,l=Math.hypot(dx,dy)||1;x=dx/l*.85;y=dy/l*.85;z=.53;}
+  const n=Math.hypot(x,y,z);return[x/n,y/n,z/n];
+}
+
+// Farbe eines Oberflächenpunkts (nx,ny,nz = Normale auf der Kugel, Bildschirmkoordinaten)
+function surface(p,nx,ny,nz,L){
+  const ca=Math.cos(p.axis),sa=Math.sin(p.axis);
+  const cx=nx*ca+ny*sa,cy=-nx*sa+ny*ca,cz=nz,s=p.seed|0;   // um die Planetenachse gedreht
+  const lam=nx*L[0]+ny*L[1]+nz*L[2];
+  let light=clamp((lam+.1)/1.1,0,1);
+  let col,glow=null,spec=0;
+  switch(p.kind){
+    case 'terran':{
+      const n=fbm(cx*1.7+3,cy*1.7,cz*1.7,s,5),sea=.52;
+      if(n<sea){col=mixc([8,26,78],[28,96,158],Math.pow(n/sea,2.2));spec=1;}
+      else{
+        const t=(n-sea)/(1-sea);
+        col=t<.18?mixc([196,186,130],[70,128,58],t/.18):t<.55?mixc([70,128,58],[124,108,72],(t-.18)/.37):mixc([124,108,72],[232,232,236],clamp((t-.55)/.3,0,1));
+      }
+      const ice=Math.abs(cy)+(fbm(cx*4,cy*4,cz*4,s+7,3)-.5)*.3;
+      if(ice>.8){const k=clamp((ice-.8)*10,0,1);col=mixc(col,[238,244,250],k);spec*=1-k;}
+      const cl=fbm(cx*2.2+9,cy*5.5,cz*2.2,s+3,4),ca2=clamp((cl-.53)*3.2,0,.9);
+      col=mixc(col,[250,252,255],ca2);spec*=1-ca2;
+      break;
+    }
+    case 'desert':{
+      const n=fbm(cx*2+1,cy*2,cz*2,s,5);
+      col=mixc([128,52,30],[218,146,88],n);
+      const m=fbm(cx*1.3,cy*1.3,cz*1.3,s+5,3);if(m<.42)col=mixc(col,[90,40,28],clamp((.42-m)*4,0,.6));
+      const c=fbm(cx*7,cy*7,cz*7,s+9,2);if(c>.68)col=mixc(col,[70,32,22],clamp((c-.68)*4,0,.5));
+      const ice=Math.abs(cy);if(ice>.9)col=mixc(col,[240,230,225],clamp((ice-.9)*12,0,1));
+      break;
+    }
+    case 'ice':{
+      const n=fbm(cx*2,cy*2,cz*2,s,5);
+      col=mixc([140,178,218],[236,246,255],n);
+      const k=Math.abs(fbm(cx*3.2,cy*3.2,cz*3.2,s+4,4)-.5);
+      if(k<.025)col=mixc(col,[70,115,170],(1-k/.025)*.75);
+      spec=.35;
+      break;
+    }
+    case 'lava':{
+      const n=fbm(cx*2.4,cy*2.4,cz*2.4,s,5);
+      col=mixc([26,20,20],[76,60,54],n);
+      const k=Math.abs(fbm(cx*2.2+5,cy*2.2,cz*2.2,s+6,4)-.5);
+      const g=clamp(1-k/.045,0,1);if(g>0)glow=[255*g,(70+90*g)*g,15*g];
+      break;
+    }
+    case 'gas':{
+      const pal=GAS_PAL[p.pal|0]||GAS_PAL[0];
+      const v=cy*7.5+(fbm(cx*1.1,cy*5,cz*1.1,s,4)-.5)*2.6;
+      col=mixc(pal[1],pal[2],(Math.sin(v*Math.PI)+1)/2);
+      col=mixc(col,pal[0],.45*(Math.sin(v*2.3+1)+1)/2);
+      const st=p.storm||{x:0,y:.3},dx=(cx-st.x)/.2,dy=(cy-st.y)/.11;
+      const d=dx*dx+dy*dy;
+      if(d<1&&cz>0){const sw=fbm(cx*6,cy*6,cz*6,s+2,3);col=mixc(col,pal[3],(1-d)*.85*(.6+sw*.6));}
+      light*=.72+.28*nz; // Randverdunklung
+      break;
+    }
+    default:{ // mondartig
+      const n=fbm(cx*2.2,cy*2.2,cz*2.2,s,5);
+      col=mixc([66,66,70],[176,174,170],n);
+      const c=fbm(cx*6.5,cy*6.5,cz*6.5,s+9,3);
+      if(c>.6)col=mixc(col,[40,40,44],clamp((c-.6)*3.5,0,.7));
+      else if(c>.56)col=mixc(col,[205,203,198],(c-.56)*8);
+    }
   }
-  b.restore();
+  // Nachtseite nicht ganz schwarz, damit der Umriss erkennbar bleibt
+  let r=col[0]*(.07+.93*light),g=col[1]*(.07+.93*light),b=col[2]*(.07+.93*light);
+  if(spec&&lam>0){ // Lichtreflex auf Wasser/Eis
+    const hx=L[0],hy=L[1],hz=L[2]+1,hl=Math.hypot(hx,hy,hz);
+    const sp=Math.pow(Math.max(0,(nx*hx+ny*hy+nz*hz)/hl),60)*spec*115;
+    r+=sp;g+=sp;b+=sp;
+  }
+  const atmo=p.kind==='gas'?(GAS_PAL[p.pal|0]||GAS_PAL[0])[2]:ATMO[p.kind];
+  if(atmo){const k=Math.pow(1-nz,2.6)*.55*clamp(lam+.35,0,1);r+=(atmo[0]-r)*k;g+=(atmo[1]-g)*k;b+=(atmo[2]-b)*k;}
+  if(glow){const night=.55+.45*(1-light);r+=glow[0]*night;g+=glow[1]*night;b+=glow[2]*night;}
+  return[r,g,b];
+}
+
+function drawRing(g,p,R,back){
+  const rg=p.ring,pal=p.kind==='gas'?(GAS_PAL[p.pal|0]||GAS_PAL[0]):[[190,180,165],[150,140,130],[215,205,190]];
+  g.save();g.rotate(p.axis);g.scale(1,rg.flat);
+  g.beginPath();g.rect(-R*3,back?-R*3:0,R*6,R*3);g.clip(); // hinterer bzw. vorderer Teil
+  const n=46,w=R*(rg.outer-rg.inner)/n;
+  g.lineWidth=w*1.25;
+  for(let i=0;i<n;i++){
+    const t=i/n,rad=R*(rg.inner+(rg.outer-rg.inner)*t),h=hash3(i,7,3,rg.seed);
+    const gap=h<.12||(t>.6&&t<.66); // Lücken wie beim Saturn
+    const a=gap?.04:(.22+h*.5)*(1-Math.abs(t-.42)*.9)*(back?.75:1);
+    const c=mixc(pal[2],pal[1],hash3(i,1,1,rg.seed));
+    g.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+    g.beginPath();g.arc(0,0,rad,0,Math.PI*2);g.stroke();
+  }
+  g.restore();
+}
+
+// Planet einmal pro Größe pixelgenau berechnen und als Bild zwischenspeichern
+function planetSprite(p){
+  const sc=dpr*view.s;
+  if(p._sprite&&p._sc===sc)return p._sprite;
+  const R=Math.max(2,p.r*sc),ext=p.ring?p.ring.outer:1.3,half=Math.ceil(R*ext)+2;
+  const c=document.createElement('canvas');c.width=c.height=half*2;
+  const g=c.getContext('2d');g.translate(half,half);
+  const L=lightDir(p);
+  const atmo=p.kind==='gas'?(GAS_PAL[p.pal|0]||GAS_PAL[0])[2]:ATMO[p.kind];
+  if(atmo){ // Atmosphärenschein
+    const gr=g.createRadialGradient(0,0,R*.96,0,0,R*1.28);
+    gr.addColorStop(0,`rgba(${atmo.join(',')},${p.kind==='gas'?.13:.28})`);gr.addColorStop(1,`rgba(${atmo.join(',')},0)`);
+    g.fillStyle=gr;g.beginPath();g.arc(0,0,R*1.28,0,7);g.fill();
+  }
+  if(p.ring)drawRing(g,p,R,true);
+  const D=Math.ceil(R*2)+2,off=D/2,img=g.createImageData(D,D),d=img.data;
+  for(let py=0;py<D;py++)for(let px=0;px<D;px++){
+    const nx=(px+.5-off)/R,ny=(py+.5-off)/R,d2=nx*nx+ny*ny;
+    if(d2>=1)continue;
+    const col=surface(p,nx,ny,Math.sqrt(1-d2),L),i=(py*D+px)*4;
+    d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255*Math.min(1,(1-Math.sqrt(d2))*R*1.5);
+  }
+  const tmp=document.createElement('canvas');tmp.width=tmp.height=D;tmp.getContext('2d').putImageData(img,0,0);
+  g.drawImage(tmp,-off,-off);
+  if(p.ring)drawRing(g,p,R,false);
+  p._sprite={c,half:half/sc};p._sc=sc;
+  return p._sprite;
+}
+
+function drawPlanet(b,p){
+  if(!p.kind)p.kind='barren';
+  if(p.axis===undefined)p.axis=0;
+  const sp=planetSprite(p);
+  b.drawImage(sp.c,p.x-sp.half,p.y-sp.half,sp.half*2,sp.half*2);
 }
 
 /* ---------- Physics ---------- */
@@ -843,7 +1007,7 @@ function startOnlineGame(){
 // lange Flugbahnen für die Übertragung ausdünnen
 function thin(pts,max){if(pts.length<=max)return pts;const k=Math.ceil(pts.length/max);return pts.filter((_,i)=>i%k===0||i===pts.length-1);}
 function snapshot(){
-  return{k:'state',planets:S.planets,ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,endless:S.endless,
+  return{k:'state',planets:S.planets.map(({_sprite,_sc,...p})=>p),ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,endless:S.endless,
     players:S.players.map(p=>({angle:p.angle,power:p.power,trails:p.trails.map(t=>thin(t,250))})),
     phase:S.phase==='over'?'over':'aim'};
 }
@@ -948,7 +1112,7 @@ function aimAt(e){
 cv.addEventListener('pointerdown',e=>{S.aiming=true;aimAt(e);});
 addEventListener('pointermove',e=>{if(S.aiming)aimAt(e);});
 addEventListener('pointerup',()=>S.aiming=false);
-addEventListener('resize',layout);
+let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(layout,120);});
 
 layout();syncPanel();updateHud();requestAnimationFrame(frame);
 </script>

@@ -22,7 +22,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 
 ## Spielelemente
 
-- **Planeten:** zufällig verteilt. Größere und dichtere ziehen stärker.
+- **Planeten:** zufällig verteilt. Größere und dichtere ziehen stärker. In der Browser-Version wird jede Oberfläche prozedural berechnet und von der Sonne beleuchtet: erdähnliche Planeten mit Ozeanen, Kontinenten, Polkappen und Wolken, Gasriesen mit Wolkenbändern und Sturmwirbel (geringere Dichte), dazu Wüsten-, Eis-, Lava- und Mondwelten. Manche haben **Ringe**, durch die man hindurchschießen kann.
 - **Sonne** in der Mitte, mit besonders starker Schwerkraft.
 - **Schwarze Löcher:** klein, aber sehr stark. Wahlweise versteckt: Sie zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken, was ihnen zu nahe kommt.
 - **Computer-Gegner** in drei Stufen. Er kennt versteckte Schwarze Löcher auch nicht.
