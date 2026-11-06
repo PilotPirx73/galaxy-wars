@@ -1,0 +1,6 @@
+# Rust-Build-Ausgaben
+desktop/target/
+desktop/*.app/
+
+# macOS
+.DS_Store
