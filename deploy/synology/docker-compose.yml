@@ -1,0 +1,9 @@
+# Galaxy Wars auf der Synology (Container Manager → Projekt)
+services:
+  galaxy-wars:
+    image: ghcr.io/pilotpirx73/galaxy-wars:latest
+    container_name: galaxy-wars
+    restart: unless-stopped
+    ports:
+      # links: Port auf der Synology, rechts: Port im Container (nicht ändern)
+      - "8090:8080"

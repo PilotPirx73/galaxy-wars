@@ -12,7 +12,7 @@ Ein rundenbasiertes Artillerie-Duell im Weltraum: Zwei Raumschiffe beschießen s
 | Läuft auf | Jedem Browser, auch Handy und Tablet | macOS, Windows, Linux |
 | Starten | `web/index.html` öffnen | App starten (siehe unten) |
 
-Beide Versionen können dasselbe.
+Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzlich einen **Online-Modus** für zwei Spieler an verschiedenen Orten (siehe unten).
 
 ## Spielelemente
 
@@ -73,9 +73,24 @@ git push origin v0.1.0
 
 Die Programme sind nicht bei Apple bzw. Microsoft signiert. Beim ersten Start warnt das System deshalb. Unter macOS hilft Rechtsklick → „Öffnen“, unter Windows „Weitere Informationen“ → „Trotzdem ausführen“.
 
-## Browser-Version online spielen
+## Online-Modus: über das Internet gegeneinander spielen
 
-Der Workflow `pages.yml` veröffentlicht `web/` auf GitHub Pages. Dafür einmalig im Repository unter *Settings → Pages* als Quelle **GitHub Actions** auswählen.
+Im Modus **„Online gegen Freund“** erstellt einer ein Spiel und bekommt einen vierstelligen Code bzw. einen Einladungslink, der andere tritt damit bei. Pro Zug werden nur die exakten Startwerte des Schusses übertragen. Beide Browser berechnen die Flugbahn dann selbst und kommen bit-genau auf dasselbe Ergebnis. Bei kurzen Verbindungsabbrüchen verbindet sich das Spiel automatisch neu.
+
+Dafür braucht es den kleinen Spielserver in `server/` (Node.js). Er liefert das Spiel aus und leitet die Züge weiter.
+
+- **Auf einer Synology:** Schritt-für-Schritt-Anleitung in [docs/synology.md](docs/synology.md). Ein fertiges Docker-Image baut GitHub automatisch: `ghcr.io/pilotpirx73/galaxy-wars`.
+- **Lokal ausprobieren:**
+
+  ```sh
+  cd server
+  npm install
+  npm start        # dann http://localhost:8080 öffnen
+  ```
+
+## Browser-Version auf GitHub Pages
+
+Der Workflow `pages.yml` veröffentlicht `web/` auf GitHub Pages: [pilotpirx73.github.io/galaxy-wars](https://pilotpirx73.github.io/galaxy-wars/). Dort funktionieren alle Modi außer dem Online-Modus, weil GitHub Pages keinen Spielserver betreiben kann. Dafür einmalig im Repository unter *Settings → Pages* als Quelle **GitHub Actions** auswählen.
 
 ## Lizenz
 

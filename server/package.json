@@ -1,0 +1,10 @@
+{
+  "name": "galaxy-wars-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spielserver für Galaxy Wars: liefert die Browser-Version aus und leitet Online-Züge weiter.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "license": "MIT",
+  "dependencies": { "ws": "^8.18.0" }
+}

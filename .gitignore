@@ -4,3 +4,7 @@ desktop/*.app/
 
 # macOS
 .DS_Store
+
+# lokale Claude-Einstellungen
+.claude/
+server/node_modules/

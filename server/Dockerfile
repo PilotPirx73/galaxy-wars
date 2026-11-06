@@ -1,0 +1,19 @@
+# Galaxy Wars – Spielserver (Browser-Version + Online-Modus)
+# Wird aus dem Wurzelverzeichnis des Repositorys gebaut:  docker build -f server/Dockerfile .
+FROM node:22-alpine
+
+ENV NODE_ENV=production \
+    PORT=8080 \
+    PUBLIC_DIR=/app/public
+
+WORKDIR /app
+COPY server/package.json server/package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY server/server.js ./
+COPY web ./public
+
+USER node
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+  CMD wget -qO- http://127.0.0.1:8080/health >/dev/null || exit 1
+CMD ["node", "server.js"]
