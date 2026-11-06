@@ -82,9 +82,10 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label>Schüsse fliegen endlos (kein Zeitlimit) <input type="checkbox" id="endless"></label>
     <label>Fluggeräusch <input type="checkbox" id="flySound" checked></label>
     <label>Alte Flugbahnen zeigen <input type="checkbox" id="trails" checked></label>
+    <label><span>Dichte anzeigen <span style="font-size:12px"><b style="color:#5be37a">● leicht</b> <b style="color:#ffd24a">● mittel</b> <b style="color:#ff5a4a">● schwer</b></span></span> <input type="checkbox" id="showDens" checked></label>
     <div class="row"><button id="resume" class="hidden">Fortsetzen</button><button id="start">Neues Spiel</button><button id="leave" class="hidden">Online-Spiel verlassen</button></div>
     <div class="help">
-      <b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Größere und dichtere Planeten ziehen stärker. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.<br>
+      <b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.<br>
       <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Maus/Finger auf dem Spielfeld halten = zielen · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · Esc = Menü<br>
       <b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.
     </div>
@@ -109,7 +110,7 @@ const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
 let dpr=1,view={s:1,ox:0,oy:0},last=performance.now(),toastTimer=0;
 
-const S={mode:'pvp',aiLvl:'mittel',nPlanets:6,keepTrails:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
+const S={mode:'pvp',aiLvl:'mittel',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
   players:[{angle:0,power:55,trails:[]},{angle:180,power:55,trails:[]}],
   ships:[],planets:[],stars:[],nebula:[],shot:null,phase:'menu',prevPhase:null,particles:[],aiTurns:0,ai:null,acc:0,aiming:false};
 
@@ -309,16 +310,24 @@ function drawBH(c,p,t,lw){
 
 /* ---------- Planeten: Typen und prozedurale Oberflächen ---------- */
 // Typ, Dichte und Ring werden beim Erzeugen der Karte festgelegt (und online mitgeschickt).
+// Drei Dichteklassen: Gleich große Planeten ziehen je nach Klasse unterschiedlich stark (Masse = Radius³ × Dichte)
+const DENS={
+  light: {d:.5, color:'#5be37a',name:'leicht'},  // Gasriesen, Eis
+  medium:{d:1,  color:'#ffd24a',name:'mittel'},  // erdähnlich, Wüste
+  heavy: {d:1.9,color:'#ff5a4a',name:'schwer'},  // Lava, Mond (Eisenkern)
+};
+const densClass=kind=>kind==='gas'||kind==='ice'?'light':kind==='lava'||kind==='barren'?'heavy':'medium';
+
 function planetLook(r){
   let kind;
   if(r>=46&&Math.random()<.7)kind='gas';
   else{const x=Math.random();kind=x<.3?'terran':x<.55?'desert':x<.72?'ice':x<.84?'lava':'barren';}
-  const dens={gas:rnd(.55,.8),terran:rnd(1,1.25),desert:rnd(.95,1.2),ice:rnd(.8,1),lava:rnd(1.2,1.4),barren:rnd(1,1.3)}[kind];
+  const cls=densClass(kind),dens=DENS[cls].d;
   const axis=rnd(-.55,.55);
   // Ringe nur optisch – Schüsse fliegen hindurch
   const ring=Math.random()<(kind==='gas'?.55:.08)
     ?{inner:rnd(1.3,1.55),outer:rnd(1.95,2.4),flat:rnd(.2,.34),seed:(Math.random()*1e9)|0}:null;
-  return{kind,dens,ring,axis,seed:(Math.random()*1e9)|0,pal:Math.floor(Math.random()*4),
+  return{kind,cls,dens,ring,axis,seed:(Math.random()*1e9)|0,pal:Math.floor(Math.random()*4),
     storm:{x:rnd(-.35,.35),y:(Math.random()<.5?-1:1)*rnd(.15,.45)}};
 }
 
@@ -487,6 +496,11 @@ function drawPlanet(b,p){
   if(p.axis===undefined)p.axis=0;
   const sp=planetSprite(p);
   b.drawImage(sp.c,p.x-sp.half,p.y-sp.half,sp.half*2,sp.half*2);
+  if(S.showDens){ // Farbkreis für die Dichteklasse
+    const c=(DENS[p.cls||densClass(p.kind)]||DENS.medium).color;
+    b.save();b.strokeStyle=c;b.globalAlpha=.7;b.lineWidth=1.6/view.s;
+    b.beginPath();b.arc(p.x,p.y,p.r+5,0,7);b.stroke();b.restore();
+  }
 }
 
 /* ---------- Physics ---------- */
@@ -808,6 +822,7 @@ function setFlySound(on){
 }
 $('flySound').onchange=e=>{S.flySound=e.target.checked;};
 $('endless').onchange=e=>{S.endless=e.target.checked;};
+$('showDens').onchange=e=>{S.showDens=e.target.checked;renderBg();};
 $('ang').oninput=e=>setAngle(+e.target.value);
 $('pow').oninput=e=>setPower(+e.target.value);
 $('angN').onchange=e=>setAngle(+e.target.value||0);
