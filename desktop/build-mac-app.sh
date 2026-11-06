@@ -31,8 +31,8 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Galaxy Wars</string>
-  <key>CFBundleDisplayName</key><string>Galaxy Wars</string>
+  <key>CFBundleName</key><string>Galaxy Wars 2026</string>
+  <key>CFBundleDisplayName</key><string>Galaxy Wars 2026</string>
   <key>CFBundleIdentifier</key><string>local.galaxy-wars</string>
   <key>CFBundleVersion</key><string>0.1.0</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>

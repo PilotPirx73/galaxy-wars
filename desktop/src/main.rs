@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // unter Windows kein Konsolenfenster
-//! Galaxy Wars – Artillerie zwischen Planeten.
+//! Galaxy Wars 2026 – Artillerie zwischen Planeten.
 
 mod audio;
 
@@ -1411,9 +1411,9 @@ impl Game {
         let fs = 16.0 * k;
         let t1 = "GALAXY ";
         let tsz = 40.0 * k;
-        let tot = tw("GALAXY WARS", tsz);
+        let tot = tw("GALAXY WARS 2026", tsz);
         txt(t1, sw / 2.0 - tot / 2.0, y + 52.0 * k, tsz, pcol(0));
-        txt("WARS", sw / 2.0 - tot / 2.0 + tw(t1, tsz), y + 52.0 * k, tsz, pcol(1));
+        txt("WARS 2026", sw / 2.0 - tot / 2.0 + tw(t1, tsz), y + 52.0 * k, tsz, pcol(1));
         txt_c("Artillerie zwischen Planeten", sw / 2.0, y + 76.0 * k, 14.0 * k, MUTED);
 
         let px = x + 28.0 * k;
@@ -1544,7 +1544,7 @@ impl Game {
 
 fn conf() -> Conf {
     Conf {
-        window_title: "Galaxy Wars".to_owned(),
+        window_title: "Galaxy Wars 2026".to_owned(),
         window_width: 1280,
         window_height: 820,
         high_dpi: true,

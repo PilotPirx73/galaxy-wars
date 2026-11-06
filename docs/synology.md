@@ -1,6 +1,6 @@
-# Galaxy Wars auf der Synology hosten
+# Galaxy Wars 2026 auf der Synology hosten
 
-Mit dieser Anleitung läuft Galaxy Wars als kleiner Server auf deiner Synology. Dein Mitspieler öffnet dann nur noch einen Link im Browser, ohne etwas zu installieren, und ihr spielt online gegeneinander.
+Mit dieser Anleitung läuft Galaxy Wars 2026 als kleiner Server auf deiner Synology. Dein Mitspieler öffnet dann nur noch einen Link im Browser, ohne etwas zu installieren, und ihr spielt online gegeneinander.
 
 Die Anleitung bezieht sich auf **DSM 7.2**. In älteren Versionen heißt der Container Manager noch „Docker“.
 
@@ -19,7 +19,7 @@ Der Server speichert nichts. Er kennt nur die gerade laufenden Spiele und leitet
 
 **Paket-Zentrum** → nach „Container Manager“ suchen → **Installieren**.
 
-## 2. Galaxy Wars als Projekt anlegen
+## 2. Galaxy Wars 2026 als Projekt anlegen
 
 1. In **File Station** einen Ordner anlegen, zum Beispiel `docker/galaxy-wars`.
 2. **Container Manager** → **Projekt** → **Erstellen**.
@@ -39,7 +39,7 @@ Der Server speichert nichts. Er kennt nur die gerade laufenden Spiele und leitet
 
 3. **Weiter** → **Weiter** → **Fertig**. Der Container Manager lädt das Image herunter und startet den Container.
 
-**Kurz testen:** Im Heimnetz `http://<IP-der-Synology>:8090` öffnen. Galaxy Wars sollte erscheinen.
+**Kurz testen:** Im Heimnetz `http://<IP-der-Synology>:8090` öffnen. Galaxy Wars 2026 sollte erscheinen.
 
 > Ist Port 8090 auf deiner Synology schon belegt, ändere nur die linke Zahl, zum Beispiel `"8091:8080"`, und verwende diese Zahl auch in Schritt 3.
 
@@ -51,7 +51,7 @@ Damit das Spiel von außen verschlüsselt erreichbar ist:
 
 | Feld | Wert |
 |---|---|
-| Beschreibung | Galaxy Wars |
+| Beschreibung | Galaxy Wars 2026 |
 | **Quelle** – Protokoll | HTTPS |
 | Quelle – Hostname | deine DynDNS-Adresse, z. B. `meinname.synology.me` |
 | Quelle – Port | `8443` |
