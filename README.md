@@ -1,4 +1,4 @@
-# Orbit Duell
+# Galaxy Wars
 
 Ein rundenbasiertes Artillerie-Duell im Weltraum: Zwei Raumschiffe beschießen sich quer durch ein Sonnensystem, und jeder Planet lenkt die Schüsse mit seiner Schwerkraft ab. Inspiriert von den klassischen Gravitations-Duellen der Heimcomputer-Ära.
 
@@ -47,7 +47,7 @@ cd desktop
 cargo run --release
 ```
 
-**macOS-App** (`Orbit Duell.app`, per Doppelklick startbar):
+**macOS-App** (`Galaxy Wars.app`, per Doppelklick startbar):
 
 ```sh
 cd desktop

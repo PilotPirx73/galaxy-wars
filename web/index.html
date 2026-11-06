@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Orbit Duell</title>
+<title>Galaxy Wars</title>
 <style>
 :root{--bg:#05060d;--fg:#e8ecff;--muted:#8a90b0;--p1:#4fd1ff;--p2:#ff6b8b;--panel:rgba(14,17,34,.92);--line:#262b4a}
 *{box-sizing:border-box}
@@ -54,7 +54,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 
 <div id="menu" class="overlay">
   <div class="card">
-    <h1>ORBIT DUELL</h1>
+    <h1>GALAXY WARS</h1>
     <p class="sub">Artillerie zwischen Planeten</p>
     <label>Modus <select id="mode"><option value="pvp">2 Spieler</option><option value="cpu">Gegen Computer</option></select></label>
     <label id="aiRow">Computer <select id="aiLvl"><option value="leicht">Leicht</option><option value="mittel" selected>Mittel</option><option value="schwer">Schwer</option></select></label>
@@ -97,7 +97,7 @@ const humanAim=()=>S.phase==='aim'&&!(S.mode==='cpu'&&S.turn===1);
 
 /* ---------- Sound (Web Audio, alles synthetisch) ---------- */
 const SFX={ctx:null,master:null,noise:null,muted:false,fly:null};
-try{SFX.muted=localStorage.getItem('orbitDuellMuted')==='1';}catch(e){}
+try{SFX.muted=localStorage.getItem('galaxyWarsMuted')==='1';}catch(e){}
 function audioInit(){
   try{
     if(!SFX.ctx){
@@ -158,7 +158,7 @@ function flyStop(){
 }
 function setMuted(m){
   SFX.muted=m;$('muteBtn').textContent=m?'🔇':'🔊';
-  try{localStorage.setItem('orbitDuellMuted',m?'1':'0');}catch(e){}
+  try{localStorage.setItem('galaxyWarsMuted',m?'1':'0');}catch(e){}
   if(m)flyStop();else{audioInit();if(S.phase==='flying')flyStart();}
 }
 

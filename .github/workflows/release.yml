@@ -15,11 +15,11 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            asset: orbit-duell-macos.zip
+            asset: galaxy-wars-macos.zip
           - os: windows-latest
-            asset: orbit-duell-windows.zip
+            asset: galaxy-wars-windows.zip
           - os: ubuntu-latest
-            asset: orbit-duell-linux.tar.gz
+            asset: galaxy-wars-linux.tar.gz
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -38,20 +38,20 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           ./build-mac-app.sh
-          ditto -c -k --keepParent "Orbit Duell.app" "../${{ matrix.asset }}"
+          ditto -c -k --keepParent "Galaxy Wars.app" "../${{ matrix.asset }}"
 
       - name: Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           cargo build --release
-          Compress-Archive -Path target/release/orbit-duell.exe -DestinationPath "../${{ matrix.asset }}"
+          Compress-Archive -Path target/release/galaxy-wars.exe -DestinationPath "../${{ matrix.asset }}"
 
       - name: Linux
         if: runner.os == 'Linux'
         run: |
           cargo build --release
-          tar czf "../${{ matrix.asset }}" -C target/release orbit-duell
+          tar czf "../${{ matrix.asset }}" -C target/release galaxy-wars
 
       - uses: actions/upload-artifact@v4
         with:

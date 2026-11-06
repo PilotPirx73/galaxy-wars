@@ -144,6 +144,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "galaxy-wars"
+version = "0.1.0"
+dependencies = [
+ "macroquad",
+]
+
+[[package]]
 name = "glam"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -301,13 +308,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13e571c3517af9e1729d4c63571a27edd660ade0667973bfc74a67c660c2b651"
 dependencies = [
  "byteorder",
-]
-
-[[package]]
-name = "orbit-duell"
-version = "0.1.0"
-dependencies = [
- "macroquad",
 ]
 
 [[package]]
