@@ -76,3 +76,7 @@ Die Programme sind nicht bei Apple bzw. Microsoft signiert. Beim ersten Start wa
 ## Browser-Version online spielen
 
 Der Workflow `pages.yml` veröffentlicht `web/` auf GitHub Pages. Dafür einmalig im Repository unter *Settings → Pages* als Quelle **GitHub Actions** auswählen.
+
+## Lizenz
+
+[MIT](LICENSE)
