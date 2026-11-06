@@ -2,9 +2,9 @@
 
 Ein rundenbasiertes Artillerie-Duell im Weltraum: Zwei Raumschiffe beschießen sich quer durch ein Sonnensystem, und jeder Planet lenkt die Schüsse mit seiner Schwerkraft ab.
 
-> **Hommage an die Amiga-Zeit:** Galaxy Wars 2026 ist inspiriert von den Gravitations-Artilleriespielen der Amiga-Ära wie „Gravity Wars“. Es ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente (Sonne, Schwarze Löcher, Computer-Gegner, Online-Modus) sind neu entwickelt. Aus dem Original ist nichts übernommen.
+> **Hommage an die Amiga-Zeit:** Galaxy Wars 2026 ist inspiriert von den Gravitations-Artilleriespielen der Amiga-Ära wie „Gravity Wars“. Es ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente (Sonne, Schwarze Löcher, Computer-Gegner, Online-Modus) sind neu entwickelt. Aus dem Original ist nichts übernommen - außer natürlich die komplette Spielidee!.
 >
-> **Komplett mit [Claude](https://claude.ai) (Anthropic) programmiert:** Browser-Version, Rust-Desktop-Version, Spielserver, Sound-Synthese, Build-Workflows und Dokumentation.
+> **Komplett von/mit [Claude](https://claude.ai) (Anthropic) programmiert:** Browser-Version, Rust-Desktop-Version, Spielserver, Sound-Synthese, Build-Workflows und Dokumentation.
 
 **Online spielen:** [pilotpirx73.github.io/galaxy-wars](https://pilotpirx73.github.io/galaxy-wars/)
 
