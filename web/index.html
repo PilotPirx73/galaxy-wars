@@ -164,7 +164,11 @@ function audioInit(){
     if(SFX.ctx.state==='suspended')SFX.ctx.resume();
   }catch(e){SFX.ctx=null;}
 }
-const audioOn=()=>SFX.ctx&&!SFX.muted;
+const audioOn=()=>{
+  if(!SFX.ctx||SFX.muted)return false;
+  if(SFX.ctx.state==='suspended')SFX.ctx.resume().catch(()=>{}); // falls der Browser den Ton zwischendurch pausiert hat
+  return true;
+};
 function tone({type='sine',f0,f1,dur,vol=.3,delay=0}){
   if(!audioOn())return;
   const c=SFX.ctx,t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();
@@ -562,6 +566,15 @@ function fire(){
   if(isOnline())netSend({k:'fire',init,a:pl.angle,p:pl.power});
   startShot(init);
 }
+// Flugbahn aufzeichnen: ein Punkt pro ~3 Längeneinheiten Weg (Kurven bleiben gleichmäßig rund).
+// Sehr lange Spuren verlieren ihren ältesten Teil wie ein Kometenschweif.
+const TRAIL_STEP2=9,TRAIL_MAX=6000;
+function trailPush(o){
+  const p=o.pts[o.pts.length-1],dx=o.x-p[0],dy=o.y-p[1];
+  if(dx*dx+dy*dy<TRAIL_STEP2)return;
+  o.pts.push([o.x,o.y]);
+  if(o.pts.length>TRAIL_MAX)o.pts.splice(0,1000);
+}
 function startShot(init){
   S.shot={...init,t:0,pts:[[init.x,init.y]],n:0,init};
   S.phase='flying';S.acc=0;S.undo=null;
@@ -664,10 +677,7 @@ function update(dt){
     while(S.acc>=DT&&S.shot){
       S.acc-=DT;
       const res=stepShot(S.shot,DT);
-      if(++S.shot.n%2===0){
-        S.shot.pts.push([S.shot.x,S.shot.y]);
-        if(S.shot.pts.length>5000)S.shot.pts=S.shot.pts.filter((_,i)=>i%2===0); // lange Flüge ausdünnen
-      }
+      S.shot.n++;trailPush(S.shot);
       for(const b of S.planets){
         if(b.type!=='bh'||b.revealed)continue;
         const bx=b.x-S.shot.x,by=b.y-S.shot.y;
@@ -769,15 +779,16 @@ function syncPanel(){
   if(document.activeElement!==$('powN'))$('powN').value=p;
   const dis=!humanAim(),flying=S.phase==='flying';
   for(const id of['ang','angN','pow','powN'])$(id).disabled=dis;
-  $('fire').disabled=(dis&&!flying)||(flying&&isOnline()&&!NET.connected);
-  $('fire').textContent=flying?'Schuss beenden':'Feuer!';
+  const othersShot=flying&&isOnline()&&S.shot&&S.shot.owner!==NET.seat;
+  $('fire').disabled=(dis&&!flying)||(flying&&isOnline()&&!NET.connected)||othersShot;
+  $('fire').textContent=othersShot?'Schuss unterwegs …':flying?'Schuss beenden':'Feuer!';
   if(flying)$('fire').style.background=COLORS[S.shot?S.shot.owner:S.turn];
 }
 function updateHud(){
   $('chatBtn').classList.toggle('hidden',!isOnline());
   const n=names(),on=isOnline(),du=i=>on&&NET.seat===i?' (du)':'';
   $('s1').textContent=`${n[0]}${du(0)} · ${S.scores[0]}`;$('s2').textContent=`${S.scores[1]} · ${n[1]}${du(1)}`;
-  let st={aim:`${n[S.turn]} ${S.mode==='cpu'&&S.turn===0?'bist':'ist'} dran`,ai:'Computer zielt …',flying:'Schuss unterwegs … Leertaste = beenden',over:'Treffer!',menu:''}[S.phase]||'';
+  let st={aim:`${n[S.turn]} ${S.mode==='cpu'&&S.turn===0?'bist':'ist'} dran`,ai:'Computer zielt …',flying:(isOnline()&&S.shot&&S.shot.owner!==NET.seat)?'Schuss unterwegs …':'Schuss unterwegs … Leertaste = beenden',over:'Treffer!',menu:''}[S.phase]||'';
   if(on){
     if(!NET.connected)st='Verbindung unterbrochen – verbinde neu …';
     else if(!NET.peer)st=`Warte auf ${n[1-NET.seat]} …`;
@@ -839,13 +850,14 @@ $('start').onclick=startGame;$('resume').onclick=resume;
 $('menuBtn').onclick=showMenu;
 $('muteBtn').onclick=()=>setMuted(!SFX.muted);
 $('muteBtn').textContent=SFX.muted?'🔇':'🔊';
-addEventListener('pointerdown',audioInit,true);
-addEventListener('keydown',audioInit,true);$('next').onclick=nextRound;
+// Ton freischalten: Browser erlauben Audio erst nach einer Nutzeraktion – Firefox und Safari zählen
+// dafür nur bestimmte Ereignisse (Klick/Loslassen), Chrome auch das Herunterdrücken. Darum alle abfangen.
+for(const ev of['pointerdown','pointerup','click','touchend','keydown','keyup'])addEventListener(ev,audioInit,true);$('next').onclick=nextRound;
 $('fire').onclick=()=>{if(S.phase==='flying')endShot();else if(humanAim())fire();};
 function endShot(){
   if(S.phase!=='flying'||!S.shot||S.shot.t<.4)return; // kurz nach dem Abschuss ignorieren (Doppeldruck)
   if(isOnline()){
-    if(!NET.connected)return;
+    if(!NET.connected||S.shot.owner!==NET.seat)return; // nur wer geschossen hat, darf beenden
     netSend({k:'abort',n:S.shot.n}); // der Mitspieler beendet den Schuss an genau derselben Stelle
   }
   resolve({type:'abort'});
@@ -1046,9 +1058,11 @@ function netGame(d){
       S.players[d.init.owner].angle=+d.a||0;S.players[d.init.owner].power=+d.p||0;
       startShot(d.init);
       break;
-    case 'abort':
-      abortAt(d.n|0);
+    case 'abort': {
+      const own=S.shot?S.shot.owner:S.undo?S.undo.init.owner:-1;
+      if(own===other)abortAt(d.n|0); // nur der Schütze darf seinen Schuss beenden
       break;
+    }
     case 'next':
       if(NET.seat===0&&S.phase==='over')nextRound();
       break;
@@ -1100,8 +1114,7 @@ function netAfterResolve(){
 // Schuss nach genau n Rechenschritten beenden – so wie beim Mitspieler
 function rebuildShot(init,n){
   const o={...init,t:0,pts:[[init.x,init.y]],n:0,init};
-  for(let i=0;i<n;i++){stepShot(o,DT);if(++o.n%2===0)o.pts.push([o.x,o.y]);}
-  o.pts=thin(o.pts,5000);
+  for(let i=0;i<n;i++){stepShot(o,DT);o.n++;trailPush(o);}
   return o;
 }
 function abortAt(n){
@@ -1109,7 +1122,7 @@ function abortAt(n){
     if(S.shot.n>n)S.shot=rebuildShot(S.shot.init,n);
     else while(S.shot.n<n){
       const r=stepShot(S.shot,DT);
-      if(++S.shot.n%2===0)S.shot.pts.push([S.shot.x,S.shot.y]);
+      S.shot.n++;trailPush(S.shot);
       if(r){resolve(r);return;}
     }
     resolve({type:'abort'});
