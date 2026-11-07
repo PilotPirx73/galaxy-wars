@@ -666,7 +666,7 @@ function resolve(res){
   else if(res.type==='sun'){explode(o.x,o.y,'#ffb347',30,false);snd.sun();toast('In der Sonne verglüht');}
   else if(res.type==='bh'){implode(res.p);res.p.revealed=true;snd.bh();toast('Vom Schwarzen Loch verschluckt');}
   else if(res.type==='out'){snd.lost();toast('Schuss hat das System verlassen');}
-  else{snd.lost();toast('Schuss verglüht im Orbit');}
+  else{explode(o.x,o.y,'#ff8a5c',26,false);snd.planet();toast('Selbstzerstörung der Rakete ausgelöst');}
   S.turn=1-S.turn;S.phase='aim';
   syncPanel();updateHud();maybeAI();
   netAfterResolve();
