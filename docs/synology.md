@@ -84,9 +84,33 @@ Karte und Regeln legt fest, wer das Spiel erstellt. Bricht die Verbindung kurz a
 
 ## Aktualisieren
 
-Bei jeder Änderung am Spiel baut GitHub automatisch ein neues Image. So holst du es auf die Synology:
+Bei jeder Änderung am Spiel baut GitHub automatisch ein neues Image.
 
-**Container Manager** → **Projekt** → `galaxy-wars` → **Aktion** → **Erstellen**. Dabei wird das neue Image geladen und der Container neu gestartet.
+**Von Hand:** **Container Manager** → **Projekt** → `galaxy-wars` → **Aktion** → **Erstellen**. Dabei wird das neue Image geladen und der Container neu gestartet.
+
+**Automatisch jede Nacht:**
+
+1. **Systemsteuerung** → **Aufgabenplaner** → **Erstellen** → **Geplante Aufgabe** → **Benutzerdefiniertes Script**
+2. **Allgemein:** Aufgabe `Galaxy Wars aktualisieren`, Benutzer **root**
+3. **Zeitplan:** täglich, zum Beispiel **4:00 Uhr**, also zu einer Zeit, in der niemand spielt. Ein Neustart beendet laufende Online-Spiele.
+4. **Aufgabeneinstellungen → Benutzerdefiniertes Script:** den Inhalt von [`deploy/synology/update.sh`](../deploy/synology/update.sh) einfügen:
+
+   ```sh
+   PROJEKT=/volume1/docker/galaxy-wars   # Ordner des Container-Manager-Projekts
+
+   export PATH="$PATH:/usr/local/bin"
+   cd "$PROJEKT" || { echo "Ordner $PROJEKT nicht gefunden"; exit 1; }
+
+   if docker compose version >/dev/null 2>&1; then DC="docker compose"; else DC="docker-compose"; fi
+
+   $DC pull --quiet && $DC up -d
+   docker image prune -f >/dev/null
+   echo "Galaxy Wars: Update-Prüfung abgeschlossen ($(date))"
+   ```
+
+5. **OK**. Danach die Aufgabe einmal markieren und auf **Ausführen** klicken. Unter **Aktion → Ergebnis anzeigen** sollte „Update-Prüfung abgeschlossen“ stehen.
+
+Liegt dein Projekt woanders, zum Beispiel auf `volume2`, passe die Zeile `PROJEKT=…` an. Den genauen Pfad zeigt die File Station: Rechtsklick auf den Ordner → **Eigenschaften**.
 
 ## Wenn es nicht klappt
 
