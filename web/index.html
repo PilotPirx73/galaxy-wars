@@ -161,8 +161,8 @@ function audioInit(){
       for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
       SFX.noise=buf;
     }
-    if(SFX.ctx.state==='suspended')SFX.ctx.resume();
-  }catch(e){SFX.ctx=null;}
+    if(SFX.ctx.state==='suspended')SFX.ctx.resume().catch(e=>{SFX.err=String(e&&e.message||e);});
+  }catch(e){SFX.ctx=null;SFX.err=String(e&&e.message||e);}
 }
 const audioOn=()=>{
   if(!SFX.ctx||SFX.muted)return false;
@@ -218,6 +218,13 @@ function setMuted(m){
   SFX.muted=m;$('muteBtn').textContent=m?'🔇':'🔊';
   try{localStorage.setItem('galaxyWarsMuted',m?'1':'0');}catch(e){}
   if(m)flyStop();else{audioInit();if(S.phase==='flying')flyStart();}
+  // Diagnose: kurzer Testton und Anzeige, was der Browser meldet
+  if(m)toast('Ton aus');
+  else setTimeout(()=>{
+    snd.click();
+    const st=SFX.ctx?SFX.ctx.state:'none';
+    toast(st==='running'?'🔊 Ton an – läuft':st==='suspended'?'🔇 Ton an – vom Browser blockiert (Schloss-Symbol → Automatische Wiedergabe erlauben)':'🔇 Ton an – Audio nicht verfügbar'+(SFX.err?': '+SFX.err:''));
+  },200);
 }
 
 /* ---------- Level ---------- */
