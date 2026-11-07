@@ -2,13 +2,19 @@
 
 Ein rundenbasiertes Artillerie-Duell im Weltraum: Zwei Raumschiffe beschießen sich quer durch ein Sonnensystem, und jeder Planet lenkt die Schüsse mit seiner Schwerkraft ab.
 
-> **Hommage an die Amiga-Zeit:** Galaxy Wars 2026 ist inspiriert von den Gravitations-Artilleriespielen der Amiga-Ära wie „Gravity Wars“. Es ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente (Sonne, Schwarze Löcher, Computer-Gegner, Online-Modus) sind neu entwickelt. Aus dem Original ist nichts übernommen - außer natürlich die komplette Spielidee!.
+> **Hommage an die Amiga-Zeit:** Galaxy Wars 2026 ist inspiriert von **„Gravity Wars“** auf dem Commodore Amiga, das damals als Public-Domain-Spiel kursierte. Es ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente (Sonne, Schwarze Löcher, Dichteklassen, Computer-Gegner, Online-Modus mit Chat) sind neu entwickelt. Aus dem Original ist nichts übernommen – außer natürlich die Spielidee!
 >
 > **Komplett von/mit [Claude](https://claude.ai) (Anthropic) programmiert:** Browser-Version, Rust-Desktop-Version, Spielserver, Sound-Synthese, Build-Workflows und Dokumentation.
 
 **Online spielen:** [pilotpirx73.github.io/galaxy-wars](https://pilotpirx73.github.io/galaxy-wars/)
 
 ![Spielszene](docs/screenshot.png)
+
+<details><summary>Menü ansehen</summary>
+
+![Menü](docs/menu.png)
+
+</details>
 
 ## Zwei Versionen
 
@@ -87,7 +93,7 @@ Im Modus **„Online gegen Freund“** erstellt einer ein Spiel und bekommt eine
 
 Dafür braucht es den kleinen Spielserver in `server/` (Node.js). Er liefert das Spiel aus und leitet die Züge weiter.
 
-- **Auf einer Synology:** Schritt-für-Schritt-Anleitung in [docs/synology.md](docs/synology.md). Ein fertiges Docker-Image baut GitHub automatisch: `ghcr.io/pilotpirx73/galaxy-wars`.
+- **Auf einer Synology:** Schritt-für-Schritt-Anleitung in [docs/synology.md](docs/synology.md). Dort steht auch, wie du das Erstellen von Online-Spielen mit einem Passwort schützt und dich per Push-Nachricht über Besucher informieren lässt. Ein fertiges Docker-Image baut GitHub automatisch: `ghcr.io/pilotpirx73/galaxy-wars`.
 - **Lokal ausprobieren:**
 
   ```sh

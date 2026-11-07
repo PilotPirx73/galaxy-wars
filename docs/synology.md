@@ -82,6 +82,42 @@ Karte und Regeln legt fest, wer das Spiel erstellt. Bricht die Verbindung kurz a
 
 **Test von außen:** `https://meinname.synology.me:8443/health` sollte `{"ok":true,…}` anzeigen. Am besten prüfst du das übers Handy mit ausgeschaltetem WLAN.
 
+## Zugang schützen und benachrichtigt werden
+
+Ohne weitere Einstellungen kann jeder, der deine Adresse kennt, dort Online-Spiele eröffnen. Mit zwei Einträgen in der Projekt-Konfiguration änderst du das:
+
+| Einstellung | Wirkung |
+|---|---|
+| `CREATE_PASSWORD` | Nur wer dieses Passwort kennt, kann ein **Online-Spiel erstellen**. Beitreten geht weiter nur mit dem Code bzw. Link des Erstellers, ganz ohne Passwort. Offline-Spielen (gegen den Computer, zu zweit an einem Gerät) bleibt frei. |
+| `NOTIFY_URL` | Push-Nachricht aufs Handy, wenn jemand das Spiel aufruft (höchstens einmal pro halbe Stunde und Besucher), ein Online-Spiel erstellt, beitritt oder ein falsches Passwort probiert. |
+| `NOTIFY_SHOW_IP` | `"true"` zeigt zusätzlich die IP-Adresse des Besuchers in der Nachricht. |
+
+Dazu gelten feste Obergrenzen: höchstens 20 Online-Spiele gleichzeitig, 8 Verbindungen pro Absender, und nach 5 falschen Passwörtern 10 Minuten Sperre.
+
+### Benachrichtigungen mit ntfy einrichten
+
+1. Die kostenlose App **ntfy** installieren (App Store bzw. Google Play), kein Konto nötig.
+2. In der App auf **+** tippen und ein Thema abonnieren, z. B. `galaxy-wars-` gefolgt von einem langen, zufälligen Wort. Wer das Thema kennt, kann die Nachrichten mitlesen – es wirkt also wie ein Passwort.
+3. Genau dieses Thema in `NOTIFY_URL` eintragen: `https://ntfy.sh/dein-thema`
+
+Die Nachrichten laufen über den öffentlichen Dienst ntfy.sh. Sie enthalten nur Uhrzeit, Ereignis und Spielernamen (und die IP-Adresse nur, wenn du `NOTIFY_SHOW_IP` einschaltest).
+
+### Einstellungen auf der Synology eintragen
+
+1. **Container Manager** → **Projekt** → `galaxy-wars` auswählen → **Aktion** → **Stoppen**.
+2. **Bearbeiten** (bzw. die YAML-Konfiguration des Projekts öffnen) und unter `ports:` diesen Block ergänzen – mit derselben Einrückung wie `ports:`:
+
+   ```yaml
+       environment:
+         CREATE_PASSWORD: "dein-passwort"
+         NOTIFY_URL: "https://ntfy.sh/dein-thema"
+   ```
+
+3. **Speichern** und das Projekt wieder **starten** bzw. **Erstellen**.
+4. Prüfen: Im Protokoll des Containers steht `Passwort zum Erstellen: aktiv · Benachrichtigungen: aktiv`.
+
+Die vollständige Beispiel-Datei liegt unter [`deploy/synology/docker-compose.yml`](../deploy/synology/docker-compose.yml).
+
 ## Aktualisieren
 
 Bei jeder Änderung am Spiel baut GitHub automatisch ein neues Image.

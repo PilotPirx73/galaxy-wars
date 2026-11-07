@@ -1,4 +1,4 @@
-# Galaxy Wars auf der Synology (Container Manager → Projekt)
+# Galaxy Wars 2026 auf der Synology (Container Manager → Projekt)
 services:
   galaxy-wars:
     image: ghcr.io/pilotpirx73/galaxy-wars:latest
@@ -7,3 +7,10 @@ services:
     ports:
       # links: Port auf der Synology, rechts: Port im Container (nicht ändern)
       - "8090:8080"
+    environment:
+      # Passwort zum Erstellen von Online-Spielen (leer lassen = jeder darf erstellen)
+      CREATE_PASSWORD: "hier-dein-passwort"
+      # optional: Push-Benachrichtigungen über die App „ntfy“ (Thema frei erfinden, lang und geheim)
+      NOTIFY_URL: "https://ntfy.sh/galaxy-wars-hier-ein-langes-geheimes-wort"
+      # optional: IP-Adresse der Besucher in der Benachrichtigung anzeigen
+      NOTIFY_SHOW_IP: "false"

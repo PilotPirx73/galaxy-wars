@@ -95,6 +95,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label>Modus <select id="mode"><option value="pvp">2 Spieler an diesem Gerät</option><option value="cpu">Gegen Computer</option><option value="online">Online gegen Freund</option></select></label>
     <div id="onlineBox" class="hidden">
       <label>Dein Name <input type="text" id="netName" maxlength="20" placeholder="z. B. Christian" autocomplete="nickname"></label>
+      <label id="pwRow" class="hidden">Passwort <input type="password" id="netPw" autocomplete="current-password" placeholder="zum Erstellen"></label>
       <button id="netCreate">Neues Online-Spiel erstellen</button>
       <label>Spiel-Code <span class="row"><input type="text" id="netCode" maxlength="4" placeholder="ABCD" autocomplete="off" style="width:90px;text-transform:uppercase"><button id="netJoin">Beitreten</button></span></label>
       <div class="hint">Karte und Regeln legt fest, wer das Spiel erstellt (Einstellungen unten).</div>
@@ -114,7 +115,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <div class="help">
       <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
       <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü</p>
-      <p><b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.</p>
+      <p><b>Über das Spiel:</b> Eine Hommage an „Gravity Wars“ auf dem Commodore Amiga, das damals als Public-Domain-Spiel kursierte. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt – übernommen ist nur die Spielidee. Komplett mit Claude (Anthropic) programmiert.</p>
     </div></div>
   </div>
 </div>
@@ -866,8 +867,17 @@ function nextRound(){
   }
   $('msg').classList.add('hidden');newLevel();
 }
+let configAsked=false;
+function askServerConfig(){
+  if(configAsked||!/^https?:$/.test(location.protocol))return;
+  configAsked=true;
+  fetch('config',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{
+    if(c&&c.needPassword)$('pwRow').classList.remove('hidden');
+  }).catch(()=>{});
+}
 function updateMenu(){
   const m=$('mode').value,inGame=isOnline();
+  if(m==='online')askServerConfig();
   $('aiRow').style.opacity=m==='cpu'?1:.4;
   $('onlineBox').classList.toggle('hidden',m!=='online'||inGame);
   $('start').classList.toggle('hidden',m==='online');
@@ -986,7 +996,7 @@ function netCreate(){
   audioInit();$('netErr').textContent='';
   try{localStorage.setItem('galaxyWarsName',myName());}catch(e){}
   showWait('Verbinde mit dem Server …','','');
-  netConnect(()=>netRaw({t:'create',name:myName()}));
+  netConnect(()=>netRaw({t:'create',name:myName(),password:$('netPw').value}));
 }
 function netJoin(){
   audioInit();$('netErr').textContent='';
@@ -1018,6 +1028,7 @@ function beginSession(m){
 function netMsg(m){
   switch(m.t){
     case 'created':
+      try{if($('netPw').value)localStorage.setItem('galaxyWarsPw',$('netPw').value);}catch(e){}
       beginSession(m);NET.peer=false;
       readSettings();
       showWait('Spiel erstellt – schick deinem Mitspieler diesen Code',m.room,joinLink());
@@ -1052,6 +1063,12 @@ function netMsg(m){
       break;
     case 'error':
       if(m.rejoin){netLeave();}
+      if(m.needPassword){
+        $('pwRow').classList.remove('hidden');
+        try{localStorage.removeItem('galaxyWarsPw');}catch(e){}
+        if(NET.ws&&!NET.room){NET.ws.onclose=null;try{NET.ws.close();}catch(e){}NET.ws=null;}
+        setTimeout(()=>$('netPw').focus(),50);
+      }
       hideWait();netError(m.reason||'Fehler');
       break;
     case 'relay':
@@ -1242,7 +1259,8 @@ $('copyLink').onclick=()=>{
   const l=joinLink();
   (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).then(()=>toast('Link kopiert')).catch(()=>prompt('Link zum Kopieren:',l));
 };
-try{$('netName').value=localStorage.getItem('galaxyWarsName')||'';}catch(e){}
+try{$('netName').value=localStorage.getItem('galaxyWarsName')||'';$('netPw').value=localStorage.getItem('galaxyWarsPw')||'';}catch(e){}
+$('netPw').addEventListener('keydown',e=>{if(e.key==='Enter')netCreate();});
 
 // Einladungslink (?join=ABCD) oder unterbrochene Sitzung wieder aufnehmen
 (function(){
