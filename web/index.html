@@ -102,6 +102,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
       <div id="netErr"></div>
     </div>
     <label id="aiRow">Computer <select id="aiLvl"><option value="leicht">Leicht</option><option value="mittel" selected>Mittel</option><option value="schwer">Schwer</option></select></label>
+    <label id="aiTypeRow">Computer-Typ <select id="aiType"><option value="ausgewogen">Ausgewogen</option><option value="vorsichtig">Vorsichtig</option><option value="trickser">Trickser</option></select></label>
     <label>Planeten <span><input type="range" id="np" min="1" max="10" value="6"> <b id="npv">6</b></span></label>
     <label>Sonne in der Mitte <input type="checkbox" id="sun" checked></label>
     <label>Schwarze Löcher <select id="bh"><option value="0">Keine</option><option value="1" selected>1</option><option value="2">2</option></select></label>
@@ -113,7 +114,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <div class="row"><button id="resume" class="hidden">Fortsetzen</button><button id="start">Neues Spiel</button><button id="leave" class="hidden">Online-Spiel verlassen</button></div>
     </div>
     <div class="help">
-      <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
+      <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Der Computer-Gegner rechnet Probeschüsse im Kopf durch und schießt sich dann ein – der Vorsichtige meidet Himmelskörper, der Trickser liebt Schleuderbahnen. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
       <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü</p>
       <p><b>Über das Spiel:</b> Eine Hommage an „Gravity Wars“ auf dem Commodore Amiga, das damals als Public-Domain-Spiel kursierte. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt – übernommen ist nur die Spielidee. Komplett mit Claude (Anthropic) programmiert.</p>
     </div></div>
@@ -144,7 +145,7 @@ const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
 let dpr=1,view={s:1,ox:0,oy:0},last=performance.now(),toastTimer=0;
 
-const S={mode:'pvp',aiLvl:'mittel',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
+const S={mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
   players:[{angle:0,power:55,trails:[]},{angle:180,power:55,trails:[]}],
   ships:[],planets:[],stars:[],nebula:[],shot:null,phase:'menu',prevPhase:null,particles:[],aiTurns:0,ai:null,acc:0,aiming:false};
 
@@ -666,33 +667,52 @@ function implode(p){
 }
 
 /* ---------- Computer ---------- */
+// Probeschuss im Kopf durchrechnen und bewerten (kleiner = besser).
+// Neben dem kleinsten Abstand zum Ziel zählen je nach Persönlichkeit auch Krümmung und Sicherheitsabstand.
 function aiEval(a,p,dt){
-  const o=launch(1,a,p),tg=S.ships[0];let min=1e9;
+  const o=launch(1,a,p),tg=S.ships[0];
   const steps=(MAX_T*.7)/dt;
-  const known=S.planets.filter(b=>b.type!=='bh'||b.revealed); // der Computer kennt versteckte Schwarze Löcher auch nicht
-  for(let k=0;k<steps;k++){
+  const known=S.planets.filter(b=>b.type!=='bh'||b.revealed); // versteckte Schwarze Löcher kennt er auch nicht
+  let min=1e9,turn=0,clear=1e9,k=0,pvx=o.vx,pvy=o.vy;
+  for(;k<steps;k++){
     const res=stepShot(o,dt,known,true);
-    const d=Math.hypot(o.x-tg.x,o.y-tg.y);if(d<min)min=d;
-    if(res){if(res.type==='ship')return res.idx===0?0:1e6;break;}
+    const dx=o.x-tg.x,dy=o.y-tg.y,d=Math.sqrt(dx*dx+dy*dy);if(d<min)min=d;
+    // wie stark krümmt sich die Bahn? (Winkel zwischen alter und neuer Flugrichtung aufsummieren)
+    const cr=pvx*o.vy-pvy*o.vx,dt2=pvx*o.vx+pvy*o.vy;turn+=Math.abs(Math.atan2(cr,dt2));pvx=o.vx;pvy=o.vy;
+    if(k%4===0)for(const b of known){const bx=o.x-b.x,by=o.y-b.y,c=Math.sqrt(bx*bx+by*by)-b.r;if(c<clear)clear=c;}
+    if(res){
+      if(res.type==='ship'){if(res.idx!==0)return 1e6;min=0;}
+      break;
+    }
   }
-  return min;
+  // Ein Treffer hat immer Vorrang; die Persönlichkeit entscheidet nur, WELCHER Treffer bzw. Beinahe-Treffer gewählt wird
+  let bias=0;
+  if(S.aiType==='vorsichtig')bias=Math.min(12,Math.max(0,70-clear)*.25)+Math.min(8,k*dt*.8); // meidet Nähe zu Himmelskörpern, mag kurze Flüge
+  else if(S.aiType==='trickser')bias=-Math.min(turn,6)*3;                                    // liebt stark gekrümmte Schleuderbahnen
+  const sc=min<=0?-100+bias:min+bias*.3;
+  return sc;
 }
 function aiPlan(){
+  // 1) grobe Suche: viele zufällige Probeschüsse mit vereinfachter Rechnung
   let best={a:180,p:55,s:1e9};
   for(let i=0;i<380;i++){
     const a=rnd(0,360),p=rnd(25,100),s=aiEval(a,p,1/120);
     if(s<best.s)best={a,p,s};
   }
+  // 2) Feinschliff: von der besten Lösung aus mit immer kleineren Änderungen herantasten (exakte Physik)
   best.s=aiEval(best.a,best.p,DT);
   for(let k=0;k<160;k++){
     const sp=10*(1-k/160)+.3;
     const a=best.a+gauss()*sp,p=Math.min(100,Math.max(5,best.p+gauss()*sp)),s=aiEval(a,p,DT);
     if(s<best.s)best={a,p,s};
-    if(best.s===0)break;
   }
-  const base={leicht:12,mittel:5,schwer:1.5}[S.aiLvl],f=Math.pow(.72,S.aiTurns);
+  // 3) Absichtlicher Zielfehler je nach Stufe. Erster Schuss streut, danach korrigiert er
+  //    systematisch in die richtige Richtung und halbiert seinen Fehler mit jedem Versuch.
+  const base={leicht:12,mittel:5,schwer:1.5}[S.aiLvl];
+  if(!S.aiErr||S.aiTurns===0)S.aiErr={a:gauss()*base,p:gauss()*base*1.2};
+  else S.aiErr={a:S.aiErr.a*.5+gauss()*base*.04,p:S.aiErr.p*.5+gauss()*base*.05};
   S.aiTurns++;
-  return{a:((best.a+gauss()*base*f)%360+360)%360,p:Math.min(100,Math.max(5,best.p+gauss()*base*1.2*f))};
+  return{a:((best.a+S.aiErr.a)%360+360)%360,p:Math.min(100,Math.max(5,best.p+S.aiErr.p))};
 }
 function maybeAI(){
   if(!(S.mode==='cpu'&&S.turn===1&&S.phase==='aim'))return;
@@ -834,7 +854,7 @@ function updateHud(){
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('on'),1600);}
 
 function readSettings(){
-  S.aiLvl=$('aiLvl').value;S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
+  S.aiLvl=$('aiLvl').value;S.aiType=$('aiType').value;S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
   S.sun=$('sun').checked;S.nBH=+$('bh').value;S.bhHidden=$('bhHidden').checked;
   S.endless=$('endless').checked;S.flySound=$('flySound').checked;
 }
@@ -878,7 +898,7 @@ function askServerConfig(){
 function updateMenu(){
   const m=$('mode').value,inGame=isOnline();
   if(m==='online')askServerConfig();
-  $('aiRow').style.opacity=m==='cpu'?1:.4;
+  $('aiRow').style.opacity=m==='cpu'?1:.4;$('aiTypeRow').style.opacity=m==='cpu'?1:.4;
   $('onlineBox').classList.toggle('hidden',m!=='online'||inGame);
   $('start').classList.toggle('hidden',m==='online');
   $('leave').classList.toggle('hidden',!inGame);

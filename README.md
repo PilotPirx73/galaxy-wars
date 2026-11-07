@@ -32,7 +32,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 - **Drei Dichteklassen:** Die Anziehung hängt von Größe *und* Dichte ab (Masse = Radius³ × Dichte). 🟢 leicht (Gasriesen, Eis, Dichte 0,5), 🟡 mittel (erdähnlich, Wüste, 1,0), 🔴 schwer (Lava, Mondgestein, 1,9). Ein farbiger Kreis zeigt die Klasse an und lässt sich im Menü ausschalten.
 - **Sonne** in der Mitte, mit besonders starker Schwerkraft.
 - **Schwarze Löcher:** klein, aber sehr stark. Wahlweise versteckt: Sie zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken, was ihnen zu nahe kommt.
-- **Computer-Gegner** in drei Stufen. Er kennt versteckte Schwarze Löcher auch nicht.
+- **Computer-Gegner** in drei Stufen und mit drei Persönlichkeiten: *Ausgewogen*, *Vorsichtig* (meidet Himmelskörper) und *Trickser* (liebt Schleuderbahnen). Er rechnet Hunderte Probeschüsse im Kopf durch, verzieht den ersten Schuss absichtlich und schießt sich dann systematisch ein. Versteckte Schwarze Löcher kennt er auch nicht.
 - **Endlos-Modus:** Schüsse fliegen ohne Zeitlimit, bis sie treffen oder du sie beendest.
 - **Alte Flugbahnen** bleiben gestrichelt sichtbar, damit man nachkorrigieren kann.
 - **Sound:** Alle Klänge werden im Programm erzeugt. Das Fluggeräusch lässt sich separat abschalten.
