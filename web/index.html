@@ -258,7 +258,7 @@ function newLevel(){
 /* ---------- Layout & background ---------- */
 function layout(){
   dpr=Math.min(2,window.devicePixelRatio||1);
-  const cw=innerWidth,ch=innerHeight;
+  const cw=Math.max(1,innerWidth),ch=Math.max(1,innerHeight); // beim Laden im Hintergrund kann das Fenster 0 groß sein
   cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);
   const top=$('hud').offsetHeight,bot=$('panel').offsetHeight;
   const aw=cw-16,ah=Math.max(100,ch-top-bot-8);
@@ -693,6 +693,7 @@ function update(dt){
 function polyline(c,pts){if(pts.length<2)return;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.stroke();}
 
 function draw(){
+  if(!bg.width||!bg.height||!cv.width||!cv.height||!(view.s>0)){layout();return;}
   ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(bg,0,0);
   if(S.phase==='menu'&&!S.ships.length)return;
   setWorld(ctx);
@@ -742,11 +743,21 @@ function draw(){
   }
   ctx.globalAlpha=1;
 }
-function frame(ts){const dt=Math.min(.05,(ts-last)/1000);last=ts;update(dt);draw();requestAnimationFrame(frame);}
+// Die Schleife plant den nächsten Durchlauf ZUERST ein: Ein einzelner Fehler darf das Spiel nie anhalten
+let frameErr=0;
+function frame(ts){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,Math.max(0,(ts-last)/1000));last=ts;
+  try{update(dt);draw();}
+  catch(e){
+    console.error(e);
+    if(performance.now()-frameErr>10000){frameErr=performance.now();toast('⚠️ Darstellungsfehler: '+(e&&e.message||e));}
+  }
+}
 
 /* ---------- UI ---------- */
-function setAngle(v){if(!humanAim())return;v=((v%360)+360)%360;S.players[S.turn].angle=Math.round(v*10)/10%360;syncPanel();netAim();}
-function setPower(v){if(!humanAim())return;S.players[S.turn].power=Math.round(Math.min(100,Math.max(0,v))*10)/10;syncPanel();netAim();}
+function setAngle(v){if(!humanAim()||!isFinite(v))return;v=((v%360)+360)%360;S.players[S.turn].angle=Math.round(v*10)/10%360;syncPanel();netAim();}
+function setPower(v){if(!humanAim()||!isFinite(v))return;S.players[S.turn].power=Math.round(Math.min(100,Math.max(0,v))*10)/10;syncPanel();netAim();}
 function syncPanel(){
   const pl=S.players[S.turn],c=COLORS[S.turn];
   $('pname').textContent=names()[S.turn];$('pname').style.color=c;
@@ -1251,6 +1262,8 @@ function aimAt(e){
 cv.addEventListener('pointerdown',e=>{S.aiming=true;aimAt(e);});
 addEventListener('pointermove',e=>{if(S.aiming)aimAt(e);});
 addEventListener('pointerup',()=>S.aiming=false);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)layout();});
+addEventListener('pageshow',()=>layout());
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(layout,120);});
 
 layout();syncPanel();updateHud();requestAnimationFrame(frame);
