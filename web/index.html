@@ -34,6 +34,16 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 .card .row button{flex:1}
 #start{background:linear-gradient(90deg,var(--p1),var(--p2));color:#05060d;border:none;font-weight:700;padding:10px}
 .help{font-size:12px;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:12px}
+.help p{margin:0 0 8px}.help p:last-child{margin:0}.help b{color:var(--fg)}
+.menuCols,.menuMain{display:flex;flex-direction:column;gap:14px}
+@media (min-width:900px){ /* breite Bildschirme: Einstellungen links, Erklärung rechts */
+  #menu .card{max-width:1060px;padding:30px 38px}
+  #menu .card h1{font-size:38px}
+  #menu .menuCols{flex-direction:row;align-items:flex-start;gap:38px}
+  #menu .menuMain{flex:1 1 0;min-width:0}
+  #menu .help{flex:1 1 0;min-width:0;border-top:none;border-left:1px solid var(--line);padding:2px 0 0 34px;font-size:13px;line-height:1.75}
+  #menu .help p{margin-bottom:14px}
+}
 #msgTitle{font-size:24px;text-align:center;font-weight:700}
 #msgSub{text-align:center;color:var(--muted);font-size:14px}
 #toast{position:fixed;top:44px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--fg);background:var(--panel);border:1px solid var(--line);padding:6px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:3;pointer-events:none}
@@ -81,6 +91,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
   <div class="card">
     <h1>GALAXY WARS 2026</h1>
     <p class="sub">Artillerie zwischen Planeten</p>
+    <div class="menuCols"><div class="menuMain">
     <label>Modus <select id="mode"><option value="pvp">2 Spieler an diesem Gerät</option><option value="cpu">Gegen Computer</option><option value="online">Online gegen Freund</option></select></label>
     <div id="onlineBox" class="hidden">
       <label>Dein Name <input type="text" id="netName" maxlength="20" placeholder="z. B. Christian" autocomplete="nickname"></label>
@@ -99,11 +110,12 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label>Alte Flugbahnen zeigen <input type="checkbox" id="trails" checked></label>
     <label><span>Dichte anzeigen <span style="font-size:12px"><b style="color:#5be37a">● leicht</b> <b style="color:#ffd24a">● mittel</b> <b style="color:#ff5a4a">● schwer</b></span></span> <input type="checkbox" id="showDens" checked></label>
     <div class="row"><button id="resume" class="hidden">Fortsetzen</button><button id="start">Neues Spiel</button><button id="leave" class="hidden">Online-Spiel verlassen</button></div>
-    <div class="help">
-      <b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.<br>
-      <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü<br>
-      <b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.
     </div>
+    <div class="help">
+      <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
+      <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü</p>
+      <p><b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.</p>
+    </div></div>
   </div>
 </div>
 
