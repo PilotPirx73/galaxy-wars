@@ -270,6 +270,17 @@ setInterval(() => {
   }
 }, 25000);
 
+// Sauber beenden, wenn der Container gestoppt wird (Node reagiert als Hauptprozess
+// im Container sonst nicht auf SIGTERM, und das Stoppen „schlägt fehl“)
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.on(sig, () => {
+    console.log(`${sig} empfangen – Galaxy Wars wird beendet`);
+    for (const ws of wss.clients) ws.close(1001, 'Server wird neu gestartet');
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 2000).unref();
+  });
+}
+
 server.listen(PORT, () => {
   console.log(`Galaxy Wars läuft auf Port ${PORT} (Dateien aus ${PUBLIC_DIR})`);
   console.log(`Passwort zum Erstellen: ${CREATE_PASSWORD ? 'aktiv' : 'aus'} · Benachrichtigungen: ${NOTIFY_URL ? 'aktiv' : 'aus'}`);
