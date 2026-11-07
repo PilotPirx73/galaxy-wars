@@ -150,6 +150,12 @@ const SHIP_TYPES=[
   ['pfeil','Pfeil'],['untertasse','Untertasse'],['rakete','Retro-Rakete'],
   ['frachter','Frachter'],['delta','Delta-Jäger'],['kugel','Kugelsonde'],
 ];
+const SHIP_PATHS={
+  pfeil:new Path2D('M21 0 L6 -4 L-5 -13 L-12 -13 L-8 -4.5 L-13 -3.2 L-13 3.2 L-8 4.5 L-12 13 L-5 13 L6 4 Z'),
+  rakete:new Path2D('M22 0 C15 -7 -1 -7.2 -11 -5.2 L-11 5.2 C-1 7.2 15 7 22 0 Z'),
+  raketeFins:new Path2D('M-1 -5.5 L-14 -12.5 L-11.5 -4.6 Z M-1 5.5 L-14 12.5 L-11.5 4.6 Z'),
+  delta:new Path2D('M21 0 L-12 -15 L-7 -4.5 L-12 0 L-7 4.5 L-12 15 Z'),
+};
 const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
@@ -1339,46 +1345,95 @@ $('netPw').addEventListener('keydown',e=>{if(e.key==='Enter')netCreate();});
 
 /* ---------- Raumschiff-Typen (eigene Entwürfe) ---------- */
 // Gezeichnet in Schiffskoordinaten: Spitze zeigt nach +x, Größe etwa wie die Trefferzone (Radius 13)
-// u = Breite eines Bildschirmpunkts in diesen Koordinaten (für gleich dicke Linien)
+// u = Breite eines Bildschirmpunkts in diesen Koordinaten (für gleich dicke Linien).
+// Die Schiffe sind mehrfarbig; die Spielerfarbe (col) erscheint nur als Umriss mit leichtem Leuchten.
 function drawShipShape(c,type,col,u,blur){
-  const hi='rgba(255,255,255,.9)',edge='rgba(255,255,255,.75)';
-  const fillGlow=()=>{c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.fill();c.shadowBlur=0;c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();};
-  const dot=(x,y,r,f)=>{c.fillStyle=f||hi;c.beginPath();c.arc(x,y,r,0,7);c.fill();};
+  const lg=(x0,y0,x1,y1,st)=>{const g=c.createLinearGradient(x0,y0,x1,y1);st.forEach(([o,k])=>g.addColorStop(o,k));return g;};
+  const rg=(x,y,r0,r1,st)=>{const g=c.createRadialGradient(x,y,r0,x,y,r1);st.forEach(([o,k])=>g.addColorStop(o,k));return g;};
+  const glass=(x,y,r)=>rg(x-r*.35,y-r*.45,r*.08,r*1.1,[[0,'#f2fdff'],[.3,'#7fe0ff'],[.75,'#1d6fb0'],[1,'#0a2a4d']]);
+  const flame=(x,y,r,hot)=>{c.save();c.shadowColor=hot||'#ff9a3c';c.shadowBlur=Math.max(4,blur*.9);
+    c.fillStyle=rg(x,y,0,r,[[0,'#fffbe0'],[.35,hot||'#ffb347'],[1,'rgba(255,80,20,0)']]);c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore();};
+  const hull=(path,fill)=>{c.save();c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=fill;c.fill(path);c.restore();};
+  const outline=path=>{c.save();c.strokeStyle=col;c.lineWidth=1.9*u;c.lineJoin='round';c.stroke(path);c.restore();};
+  const dot=(x,y,r,f)=>{c.fillStyle=f;c.beginPath();c.arc(x,y,r,0,7);c.fill();};
+  const line=(pts,w,k)=>{c.strokeStyle=k;c.lineWidth=w;c.lineCap='round';c.beginPath();c.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)c.lineTo(pts[i],pts[i+1]);c.stroke();};
   c.lineJoin='round';
   switch(type){
-    case 'untertasse':
-      c.beginPath();c.ellipse(0,0,16,7,0,0,7);fillGlow();
-      c.beginPath();c.ellipse(1,0,7,4.5,0,0,7);c.fillStyle='rgba(255,255,255,.55)';c.fill();
-      for(let k=0;k<6;k++){const a=k/6*Math.PI*2;dot(Math.cos(a)*12.5,Math.sin(a)*5,1.1,k%2?'#fff6a0':hi);}
-      c.beginPath();c.moveTo(16,0);c.lineTo(21,-2.5);c.lineTo(21,2.5);c.closePath();c.fillStyle=col;c.fill(); // Richtung
-      break;
-    case 'rakete':
-      c.beginPath();c.moveTo(19,0);c.bezierCurveTo(12,-6,-4,-6,-11,-4);c.lineTo(-11,4);c.bezierCurveTo(-4,6,12,6,19,0);c.closePath();fillGlow();
-      for(const sg of[-1,1]){c.beginPath();c.moveTo(-3,4*sg);c.lineTo(-14,11*sg);c.lineTo(-11,4*sg);c.closePath();c.fillStyle=col;c.fill();c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();}
-      dot(6,0,2.6);dot(-12,0,2.2,'rgba(255,190,90,.9)');
-      break;
-    case 'frachter':
-      c.beginPath();c.roundRect(-12,-8,24,16,4);fillGlow();
-      c.beginPath();c.roundRect(-17,-8,6,5,1.5);c.roundRect(-17,3,6,5,1.5);c.fillStyle=col;c.fill();c.strokeStyle=edge;c.stroke();
-      c.beginPath();c.roundRect(9,-5,8,10,3);c.fillStyle=col;c.fill();c.stroke();
-      dot(13,0,2.4);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(-8,-4,14,2);c.fillRect(-8,2,14,2);
-      dot(-17,-5.5,1.4,'rgba(255,190,90,.9)');dot(-17,5.5,1.4,'rgba(255,190,90,.9)');
-      break;
-    case 'delta':
-      c.beginPath();c.moveTo(20,0);c.lineTo(-11,-14);c.lineTo(-6,0);c.lineTo(-11,14);c.closePath();fillGlow();
-      c.beginPath();c.moveTo(14,0);c.lineTo(-2,-3);c.lineTo(-2,3);c.closePath();c.fillStyle='rgba(255,255,255,.55)';c.fill();
-      dot(-9,-6,1.8,'rgba(255,190,90,.9)');dot(-9,6,1.8,'rgba(255,190,90,.9)');
-      break;
-    case 'kugel':
-      c.beginPath();c.moveTo(9,0);c.lineTo(19,0);c.strokeStyle=edge;c.lineWidth=1.6*u;c.stroke();dot(19,0,1.8,'#fff6a0');
-      for(const sg of[-1,1]){c.beginPath();c.moveTo(-6,7*sg);c.lineTo(-14,12*sg);c.lineTo(-9,4*sg);c.closePath();c.fillStyle=col;c.fill();c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();}
-      c.beginPath();c.arc(0,0,10,0,7);fillGlow();
-      c.beginPath();c.ellipse(0,0,10,3,0,0,7);c.strokeStyle='rgba(255,255,255,.45)';c.lineWidth=1.2*u;c.stroke();
-      dot(4,-3,2.4);
-      break;
-    default: // Pfeil
-      c.beginPath();c.moveTo(17,0);c.lineTo(-11,-10);c.lineTo(-5,0);c.lineTo(-11,10);c.closePath();fillGlow();
-      dot(3,0,2.6);
+    case 'untertasse':{
+      const P=new Path2D();P.ellipse(0,1,17,7,0,0,Math.PI*2);
+      hull(P,lg(0,-6,0,8,[[0,'#f7f9fc'],[.45,'#aeb8c6'],[.8,'#5c6676'],[1,'#323944']]));
+      c.strokeStyle='rgba(40,46,56,.7)';c.lineWidth=.8;c.beginPath();c.ellipse(0,1.6,12.5,4.3,0,0,7);c.stroke();
+      const lights=['#ff4d5a','#ffd84d','#5dff8f','#ffd84d'];
+      for(let k=0;k<10;k++){const a=k/10*Math.PI*2,x=Math.cos(a)*14.5,y=1+Math.sin(a)*5.8;
+        c.save();c.shadowColor=lights[k%4];c.shadowBlur=Math.max(3,blur*.5);dot(x,y,1.05,lights[k%4]);c.restore();}
+      c.fillStyle=glass(1.5,-3,6.5);c.beginPath();c.ellipse(1.5,-.4,6.8,5.6,0,Math.PI,Math.PI*2);c.closePath();c.fill();
+      c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.ellipse(-.5,-3.6,2.2,1,-.3,0,7);c.fill();
+      c.save();c.shadowColor='#ffffff';c.shadowBlur=Math.max(3,blur*.6);dot(16.6,1,1.5,'#ffffff');c.restore(); // Scheinwerfer = Flugrichtung
+      outline(P);
+      break;}
+    case 'rakete':{
+      const P=SHIP_PATHS.rakete,F=SHIP_PATHS.raketeFins;
+      flame(-13,0,7.5);
+      c.fillStyle=lg(0,-12,0,12,[[0,'#ff7d6e'],[.5,'#d92f22'],[1,'#7a1209']]);c.fill(F);
+      c.strokeStyle='rgba(60,10,5,.6)';c.lineWidth=.6;c.stroke(F);
+      hull(P,lg(0,-6.5,0,6.5,[[0,'#fffdf6'],[.45,'#ece1c8'],[1,'#8a7c62']]));
+      c.save();c.clip(P);
+      c.fillStyle=lg(0,-6.5,0,6.5,[[0,'#ff8a7c'],[.45,'#e2372a'],[1,'#7a1209']]);c.fillRect(11,-8,12,16);
+      c.fillRect(-6.5,-8,1.8,16);c.restore();
+      for(const x of[5,-.5]){dot(x,0,2.3,'#c9a24a');dot(x,0,1.65,glass(x,0,1.7));}
+      outline(P);c.save();c.strokeStyle=col;c.lineWidth=1.2*u;c.stroke(F);c.restore();
+      break;}
+    case 'frachter':{
+      const P=new Path2D();P.roundRect(-13,-8.5,25,17,3);P.roundRect(10,-5.5,9,11,3.2);
+      flame(-15.5,-4.6,4.6,'#7fd0ff');flame(-15.5,4.6,4.6,'#7fd0ff');
+      c.fillStyle='#3a3f47';c.beginPath();c.roundRect(-16,-7.4,4,5.6,1);c.roundRect(-16,1.8,4,5.6,1);c.fill();
+      hull(P,lg(0,-8.5,0,8.5,[[0,'#dde1d2'],[.5,'#8c937f'],[1,'#3f4438']]));
+      [['#2f7fd1',-11],['#e8862a',-4.6],['#3fae5a',1.8]].forEach(([k,x])=>{
+        c.fillStyle=lg(0,-6.6,0,6.6,[[0,k],[1,'rgba(0,0,0,.55)']]);c.fillRect(x,-6.6,5.6,13.2);
+        c.fillStyle=k;c.fillRect(x,-6.6,5.6,6.2);
+        c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=.5;for(let yy=-4.5;yy<6;yy+=3){c.beginPath();c.moveTo(x+.5,yy);c.lineTo(x+5.1,yy);c.stroke();}});
+      c.save();c.beginPath();c.rect(8.8,-8.5,1.6,17);c.clip();for(let yy=-9;yy<9;yy+=2.4){c.fillStyle='#ffd23f';c.fillRect(8.8,yy,1.6,1.2);c.fillStyle='#222';c.fillRect(8.8,yy+1.2,1.6,1.2);}c.restore();
+      c.fillStyle=glass(16,0,3.8);c.beginPath();c.roundRect(13.6,-3.2,4.6,6.4,2.2);c.fill();
+      outline(P);
+      break;}
+    case 'delta':{
+      const P=SHIP_PATHS.delta;
+      flame(-11,-6.5,4.2,'#6fb6ff');flame(-12.5,0,5.2,'#6fb6ff');flame(-11,6.5,4.2,'#6fb6ff');
+      hull(P,lg(0,-15,0,15,[[0,'#6c778b'],[.5,'#2c323e'],[1,'#14181f']]));
+      c.save();c.shadowColor='#36f1cd';c.shadowBlur=Math.max(3,blur*.5);
+      line([17,-.6,-9,-12.4],.9,'#36f1cd');line([17,.6,-9,12.4],.9,'#36f1cd');c.restore();
+      c.fillStyle=lg(-8,0,19,0,[[0,'#3a4250'],[1,'#9aa4b5']]);c.beginPath();c.moveTo(19,0);c.lineTo(-6,-2.8);c.lineTo(-6,2.8);c.closePath();c.fill();
+      c.fillStyle=rg(8.5,-.7,.2,4,[[0,'#fff4cc'],[.35,'#ffb52e'],[1,'#6a3500']]);c.beginPath();c.ellipse(8.5,0,4.2,1.9,0,0,7);c.fill();
+      line([-1,-8,-5,-10.5],.7,'#ff5a4a');line([-1,8,-5,10.5],.7,'#ff5a4a');
+      outline(P);
+      break;}
+    case 'kugel':{
+      for(const sg of[-1,1]){
+        c.fillStyle='#9aa3b0';c.fillRect(-1,sg>0?8:-11,2,3);
+        const y0=sg>0?10.5:-17.5;
+        c.fillStyle=lg(0,y0,0,y0+7,[[0,'#3d7bff'],[1,'#15307a']]);c.fillRect(-7,y0,14,7);
+        c.strokeStyle='rgba(170,205,255,.75)';c.lineWidth=.45;
+        for(let x=-7;x<=7;x+=3.5){c.beginPath();c.moveTo(x,y0);c.lineTo(x,y0+7);c.stroke();}
+        c.beginPath();c.moveTo(-7,y0+3.5);c.lineTo(7,y0+3.5);c.stroke();
+        c.save();c.strokeStyle=col;c.lineWidth=1.1*u;c.strokeRect(-7,y0,14,7);c.restore();
+      }
+      const P=new Path2D();P.arc(0,0,9.5,0,Math.PI*2);
+      hull(P,rg(-3.2,-3.6,.8,10.5,[[0,'#fff6d2'],[.35,'#f2c14e'],[.8,'#a8701a'],[1,'#5e3c0a']]));
+      c.strokeStyle='rgba(80,45,8,.55)';c.lineWidth=.9;c.beginPath();c.ellipse(0,0,9.5,2.8,0,0,7);c.stroke();
+      line([9,0,15.5,0],1.2,'#d7dce4');
+      c.fillStyle=lg(15,-5,19,5,[[0,'#ffffff'],[1,'#9aa4b5']]);c.beginPath();c.ellipse(17,0,1.9,5,0,0,7);c.fill();
+      dot(3.2,-3,2.5,glass(3.2,-3,2.6));
+      outline(P);
+      break;}
+    default:{ // Pfeil (Jäger)
+      const P=SHIP_PATHS.pfeil;
+      flame(-13.5,-2,4.6);flame(-13.5,2,4.6);
+      hull(P,lg(0,-13,0,13,[[0,'#f1f4f9'],[.45,'#a9b3c2'],[1,'#47505f']]));
+      c.fillStyle=lg(-12,0,20,0,[[0,'#2f3642'],[1,'#7d899b']]);c.beginPath();c.ellipse(3.5,0,14.5,3.3,0,0,7);c.fill();
+      line([1,-5.6,-6.5,-11.6],1.3,'#ff9f1c');line([1,5.6,-6.5,11.6],1.3,'#ff9f1c');
+      c.fillStyle=glass(9.5,0,4.5);c.beginPath();c.ellipse(9.5,0,4.8,2.3,0,0,7);c.fill();
+      outline(P);
+    }
   }
 }
 
