@@ -9,6 +9,7 @@ services:
       - "8090:8080"
     environment:
       # Passwort zum Erstellen von Online-Spielen (leer lassen = jeder darf erstellen)
+      # Achtung: kein "$" verwenden (oder als "$$" schreiben) – nur Buchstaben, Ziffern, - und _
       CREATE_PASSWORD: "hier-dein-passwort"
       # optional: Push-Benachrichtigungen über die App „ntfy“ (Thema frei erfinden, lang und geheim)
       NOTIFY_URL: "https://ntfy.sh/galaxy-wars-hier-ein-langes-geheimes-wort"

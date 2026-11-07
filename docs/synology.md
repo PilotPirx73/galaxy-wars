@@ -113,6 +113,8 @@ Die Nachrichten laufen über den öffentlichen Dienst ntfy.sh. Sie enthalten nur
          NOTIFY_URL: "https://ntfy.sh/dein-thema"
    ```
 
+   ⚠️ **Kein `$` im Passwort** – der Container Manager liest `$…` als Variable und schneidet das Passwort dort ab. Am besten nur Buchstaben, Ziffern, `-` und `_` verwenden. Wer ein `$` braucht, schreibt es in der YAML-Datei doppelt (`$$`); im Spiel wird es normal eingegeben.
+
 3. **Speichern** und das Projekt wieder **starten** bzw. **Erstellen**.
 4. Prüfen: Im Protokoll des Containers steht `Passwort zum Erstellen: aktiv · Benachrichtigungen: aktiv`.
 
