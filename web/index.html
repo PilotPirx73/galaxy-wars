@@ -155,7 +155,7 @@ try{SFX.muted=localStorage.getItem('galaxyWarsMuted')==='1';}catch(e){}
 function audioInit(){
   try{
     if(!SFX.ctx){
-      SFX.ctx=new(window.AudioContext||window.webkitAudioContext)();
+      SFX.ctx=new(window.AudioContext||window.webkitAudioContext)();SFX.born=performance.now();
       SFX.master=SFX.ctx.createGain();SFX.master.gain.value=.55;SFX.master.connect(SFX.ctx.destination);
       const len=SFX.ctx.sampleRate*2,buf=SFX.ctx.createBuffer(1,len,SFX.ctx.sampleRate),d=buf.getChannelData(0);
       for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
@@ -164,10 +164,20 @@ function audioInit(){
     if(SFX.ctx.state==='suspended')SFX.ctx.resume().catch(e=>{SFX.err=String(e&&e.message||e);});
   }catch(e){SFX.ctx=null;SFX.err=String(e&&e.message||e);}
 }
+// Browser geben Ton erst frei, nachdem auf diesem Gerät einmal geklickt/getippt wurde.
+// Ist der Ton noch gesperrt, wird nichts gesammelt (sonst kämen später alle Töne auf einmal),
+// sondern ein Hinweis angezeigt.
+let audioHintAt=-1e9; // erster Hinweis sofort möglich, danach höchstens alle 15 s
 const audioOn=()=>{
-  if(!SFX.ctx||SFX.muted)return false;
-  if(SFX.ctx.state==='suspended')SFX.ctx.resume().catch(()=>{}); // falls der Browser den Ton zwischendurch pausiert hat
-  return true;
+  if(SFX.muted)return false;
+  const c=SFX.ctx;
+  if(c&&c.state==='running')return true;
+  if(c&&c.state!=='closed'){
+    c.resume().catch(()=>{});
+    if(performance.now()-(SFX.born||0)<1500)return true; // gerade erst im Klick erzeugt – startet gleich
+  }
+  if(performance.now()-audioHintAt>15000){audioHintAt=performance.now();toast('🔇 Einmal ins Spiel klicken oder tippen, dann gibt es auch hier Ton');}
+  return false;
 };
 function tone({type='sine',f0,f1,dur,vol=.3,delay=0}){
   if(!audioOn())return;
@@ -1282,7 +1292,7 @@ function aimAt(e){
 cv.addEventListener('pointerdown',e=>{S.aiming=true;aimAt(e);});
 addEventListener('pointermove',e=>{if(S.aiming)aimAt(e);});
 addEventListener('pointerup',()=>S.aiming=false);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)layout();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){layout();if(SFX.ctx&&SFX.ctx.state==='suspended')SFX.ctx.resume().catch(()=>{});}});
 addEventListener('pageshow',()=>layout());
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(layout,120);});
 
