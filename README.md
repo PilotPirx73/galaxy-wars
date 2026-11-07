@@ -35,6 +35,8 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 - **Computer-Gegner** in drei Stufen und mit drei Persönlichkeiten: *Ausgewogen*, *Vorsichtig* (meidet Himmelskörper) und *Trickser* (liebt Schleuderbahnen). Er rechnet Hunderte Probeschüsse im Kopf durch, verzieht den ersten Schuss absichtlich und schießt sich dann systematisch ein. Versteckte Schwarze Löcher kennt er auch nicht.
 - **Endlos-Modus:** Schüsse fliegen ohne Zeitlimit, bis sie treffen oder du sie beendest.
 - **Alte Flugbahnen** bleiben gestrichelt sichtbar, damit man nachkorrigieren kann.
+- **Sechs Raumschiff-Typen** (eigene Entwürfe): Pfeil, Untertasse, Retro-Rakete, Frachter, Delta-Jäger und Kugelsonde – online sieht der Mitspieler dein Schiff.
+- **Zoom:** Mausrad, zwei Finger oder − / + ; „Alle Bahnen zeigen“ (Taste Z) zoomt so weit heraus, dass auch weit ausholende Flugbahnen ins Bild passen.
 - **Sound:** Alle Klänge werden im Programm erzeugt. Das Fluggeräusch lässt sich separat abschalten.
 
 ## Steuerung

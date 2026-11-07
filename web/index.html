@@ -8,7 +8,7 @@
 :root{--bg:#05060d;--fg:#e8ecff;--muted:#8a90b0;--p1:#4fd1ff;--p2:#ff6b8b;--panel:rgba(14,17,34,.92);--line:#262b4a}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden;user-select:none;-webkit-user-select:none}
-canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none}
+#c{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none}
 #hud{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;font-size:15px;z-index:2;pointer-events:none}
 #hud .sc{font-weight:700;letter-spacing:.05em}
 #s1{color:var(--p1)}#s2{color:var(--p2)}
@@ -61,6 +61,8 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 #waitTitle{font-size:20px;text-align:center;font-weight:700}
 #waitSub{text-align:center;color:var(--muted);font-size:13px;word-break:break-all}
 #chatBtn{position:relative}
+.shipPick{display:flex;align-items:center;gap:8px}.shipPick canvas{width:40px;height:40px;background:#0b0e1f;border:1px solid var(--line);border-radius:6px}
+.zoomGrp{display:inline-flex}.zoomGrp button{border-radius:0;padding:7px 11px;min-width:38px}.zoomGrp button:first-child{border-radius:6px 0 0 6px}.zoomGrp button:last-child{border-radius:0 6px 6px 0}.zoomGrp button+button{border-left:none}
 #chatBadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--p2);color:#05060d;font-size:11px;font-weight:700;line-height:18px}
 #chatBadge:empty{display:none}
 #chat{position:fixed;left:12px;bottom:80px;width:min(340px,calc(100vw - 24px));max-height:42vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;z-index:3;box-shadow:0 6px 24px rgba(0,0,0,.4)}
@@ -82,6 +84,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
   <label>Winkel <input type="range" id="ang" min="0" max="359.9" step="0.1"><input type="number" id="angN" step="0.1" min="0" max="360"></label>
   <label>Geschwindigkeit <input type="range" id="pow" min="0" max="100" step="0.1"><input type="number" id="powN" step="0.1" min="0" max="100"></label>
   <button id="fire">Feuer!</button>
+  <span class="zoomGrp"><button id="zoomOut" title="Herauszoomen (−)">−</button><button id="zoomFit" title="Alle Bahnen zeigen (Z)">⤢</button><button id="zoomIn" title="Hineinzoomen (+)">+</button></span>
   <button id="muteBtn" title="Ton an/aus (M)">🔊</button>
   <button id="chatBtn" class="hidden" title="Chat (C)">💬<span id="chatBadge"></span></button>
   <button id="menuBtn" title="Menü (Esc)">Menü</button>
@@ -103,6 +106,8 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     </div>
     <label id="aiRow">Computer <select id="aiLvl"><option value="leicht">Leicht</option><option value="mittel" selected>Mittel</option><option value="schwer">Schwer</option></select></label>
     <label id="aiTypeRow">Computer-Typ <select id="aiType"><option value="ausgewogen">Ausgewogen</option><option value="vorsichtig">Vorsichtig</option><option value="trickser">Trickser</option></select></label>
+    <label id="ship0Row"><span id="ship0Lbl">Raumschiff Spieler 1</span><span class="shipPick"><canvas id="ship0Prev" width="80" height="80"></canvas><select id="ship0"></select></span></label>
+    <label id="ship1Row"><span id="ship1Lbl">Raumschiff Spieler 2</span><span class="shipPick"><canvas id="ship1Prev" width="80" height="80"></canvas><select id="ship1"></select></span></label>
     <label>Planeten <span><input type="range" id="np" min="1" max="10" value="6"> <b id="npv">6</b></span></label>
     <label>Sonne in der Mitte <input type="checkbox" id="sun" checked></label>
     <label>Schwarze Löcher <select id="bh"><option value="0">Keine</option><option value="1" selected>1</option><option value="2">2</option></select></label>
@@ -115,7 +120,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     </div>
     <div class="help">
       <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Der Computer-Gegner rechnet Probeschüsse im Kopf durch und schießt sich dann ein – der Vorsichtige meidet Himmelskörper, der Trickser liebt Schleuderbahnen. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
-      <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü</p>
+      <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Mausrad/zwei Finger, + / − = Zoom · Z = alle Bahnen zeigen · 0 = Zoom zurücksetzen · Esc = Menü</p>
       <p><b>Über das Spiel:</b> Eine Hommage an „Gravity Wars“ auf dem Commodore Amiga, das damals als Public-Domain-Spiel kursierte. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt – übernommen ist nur die Spielidee. Komplett mit Claude (Anthropic) programmiert.</p>
     </div></div>
   </div>
@@ -140,16 +145,23 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 'use strict';
 const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5.2,MAX_T=30;
 const COLORS=['#4fd1ff','#ff6b8b'];
+// Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
+const SHIP_TYPES=[
+  ['pfeil','Pfeil'],['untertasse','Untertasse'],['rakete','Retro-Rakete'],
+  ['frachter','Frachter'],['delta','Delta-Jäger'],['kugel','Kugelsonde'],
+];
 const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
 let dpr=1,view={s:1,ox:0,oy:0},last=performance.now(),toastTimer=0;
 
-const S={mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
+const S={shipTypes:['pfeil','pfeil'],mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
   players:[{angle:0,power:55,trails:[]},{angle:180,power:55,trails:[]}],
   ships:[],planets:[],stars:[],nebula:[],shot:null,phase:'menu',prevPhase:null,particles:[],aiTurns:0,ai:null,acc:0,aiming:false};
 
 // Online-Zustand: seat 0 = Ersteller (erzeugt die Karten), seat 1 = Gast
+// Kamera: zoom 1 = ganzes Spielfeld, kleiner = weiter herausgezoomt; x/y = Weltpunkt in der Bildmitte
+const CAM={zoom:1,x:W/2,y:H/2,s0:1,cx:0,cy:0};
 const NET={ws:null,room:null,seat:0,token:null,names:['',''],peer:false,connected:false,active:false,pendingSnapshot:false,retry:0};
 const isOnline=()=>S.mode==='online'&&!!NET.room;
 
@@ -302,8 +314,10 @@ function layout(){
   cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr);
   const top=$('hud').offsetHeight,bot=$('panel').offsetHeight;
   const aw=cw-16,ah=Math.max(100,ch-top-bot-8);
-  const s=Math.min(aw/W,ah/H);
-  view={s,ox:(cw-W*s)/2,oy:top+(ah-H*s)/2+4};
+  // Grundmaßstab: ganzes Spielfeld passt hinein; dazu Kamera-Zoom und -Mittelpunkt
+  const s0=Math.min(aw/W,ah/H),s=s0*CAM.zoom;
+  CAM.s0=s0;CAM.cx=cw/2;CAM.cy=top+ah/2+4;
+  view={s,ox:CAM.cx-CAM.x*s,oy:CAM.cy-CAM.y*s};
   chatPlace();
   renderBg();
 }
@@ -527,7 +541,7 @@ function drawRing(g,p,R,back){
 // Planet einmal pro Größe pixelgenau berechnen und als Bild zwischenspeichern
 function planetSprite(p){
   const sc=dpr*view.s;
-  if(p._sprite&&p._sc===sc)return p._sprite;
+  if(p._sprite&&p._sc>=sc*.98&&p._sc<=sc*3)return p._sprite; // beim Herauszoomen das größere Bild verkleinert weiterverwenden
   const R=Math.max(2,p.r*sc),ext=p.ring?p.ring.outer:1.3,half=Math.ceil(R*ext)+2;
   const c=document.createElement('canvas');c.width=c.height=half*2;
   const g=c.getContext('2d');g.translate(half,half);
@@ -781,10 +795,7 @@ function draw(){
     }
     // Schiff mit Mindestgröße auf dem Bildschirm (nur optisch – die Trefferzone bleibt gleich)
     ctx.save();ctx.translate(sh.x,sh.y);ctx.rotate(-a);ctx.scale(sc,sc);
-    ctx.shadowColor=COLORS[i];ctx.shadowBlur=12*dpr;
-    ctx.fillStyle=COLORS[i];ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-11,-10);ctx.lineTo(-5,0);ctx.lineTo(-11,10);ctx.closePath();ctx.fill();
-    ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.2*lw/sc;ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(3,0,2.6,0,7);ctx.fill();
+    drawShipShape(ctx,S.shipTypes[i]||'pfeil',COLORS[i],lw/sc,12*dpr);
     ctx.restore();
   });
   if(S.shot){
@@ -854,7 +865,9 @@ function updateHud(){
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('on'),1600);}
 
 function readSettings(){
-  S.aiLvl=$('aiLvl').value;S.aiType=$('aiType').value;S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
+  S.aiLvl=$('aiLvl').value;S.aiType=$('aiType').value;
+  if(isOnline())S.shipTypes[NET.seat]=validShip($('ship0').value);
+  else S.shipTypes=[validShip($('ship0').value),validShip($('ship1').value)];S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
   S.sun=$('sun').checked;S.nBH=+$('bh').value;S.bhHidden=$('bhHidden').checked;
   S.endless=$('endless').checked;S.flySound=$('flySound').checked;
 }
@@ -898,7 +911,10 @@ function askServerConfig(){
 function updateMenu(){
   const m=$('mode').value,inGame=isOnline();
   if(m==='online')askServerConfig();
-  $('aiRow').style.opacity=m==='cpu'?1:.4;$('aiTypeRow').style.opacity=m==='cpu'?1:.4;
+  $('aiRow').style.opacity=m==='cpu'?1:.4;
+  $('ship0Lbl').textContent=m==='pvp'?'Raumschiff Spieler 1':'Dein Raumschiff';
+  $('ship1Lbl').textContent=m==='cpu'?'Raumschiff Computer':'Raumschiff Spieler 2';
+  $('ship1Row').classList.toggle('hidden',m==='online');$('aiTypeRow').style.opacity=m==='cpu'?1:.4;
   $('onlineBox').classList.toggle('hidden',m!=='online'||inGame);
   $('start').classList.toggle('hidden',m==='online');
   $('leave').classList.toggle('hidden',!inGame);
@@ -907,6 +923,21 @@ function updateMenu(){
   $('mode').disabled=inGame;
 }
 
+/* Raumschiff-Auswahl */
+function shipPreview(i){
+  const cnv=$('ship'+i+'Prev'),c=cnv.getContext('2d');
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cnv.width,cnv.height);
+  c.setTransform(1.6,0,0,1.6,cnv.width/2,cnv.height/2);c.rotate(i===1?Math.PI:0);
+  drawShipShape(c,$('ship'+i).value,COLORS[i],1/1.6,8);
+}
+for(const i of[0,1]){
+  const sel=$('ship'+i);
+  for(const[v,n]of SHIP_TYPES){const o=document.createElement('option');o.value=v;o.textContent=n;sel.append(o);}
+  try{const saved=JSON.parse(localStorage.getItem('galaxyWarsShips')||'[]');if(SHIP_TYPES.some(t=>t[0]===saved[i]))sel.value=saved[i];}catch(e){}
+  sel.onchange=()=>{shipPreview(i);try{localStorage.setItem('galaxyWarsShips',JSON.stringify([$('ship0').value,$('ship1').value]));}catch(e){}};
+  shipPreview(i);
+}
+const validShip=v=>SHIP_TYPES.some(t=>t[0]===v)?v:'pfeil';
 $('mode').onchange=updateMenu;
 updateMenu();
 $('np').oninput=()=>$('npv').textContent=$('np').value;
@@ -951,6 +982,12 @@ addEventListener('keydown',e=>{
   if(e.key==='Escape'){showMenu();return;}
   const typing=e.target.tagName==='INPUT'&&(e.target.type==='number'||e.target.type==='text');
   if((e.key==='c'||e.key==='C')&&!typing&&isOnline()){e.preventDefault();chatToggle(true);return;}
+  if(!typing){ // Zoom-Tasten
+    if(e.key==='+'||e.key==='='){zoomBy(1.25);return;}
+    if(e.key==='-'||e.key==='_'){zoomBy(1/1.25);return;}
+    if(e.key==='z'||e.key==='Z'){zoomFit();return;}
+    if(e.key==='0'){zoomReset();return;}
+  }
   if((e.key==='m'||e.key==='M')&&!typing){setMuted(!SFX.muted);return;}
   if((e.key==='f'||e.key==='F')&&!typing){setFlySound(!S.flySound);return;}
   if(S.phase==='flying'){
@@ -1042,6 +1079,7 @@ function beginSession(m){
   S.mode='online';NET.active=true;NET.connected=true;
   NET.room=m.room;NET.seat=m.seat;if(m.token)NET.token=m.token;NET.names=m.names||NET.names;
   S.ships=[];S.planets=[];S.shot=null;S.scores=[0,0];S.phase='aim';flyStop();
+  S.shipTypes[NET.seat]=validShip($('ship0').value);
   saveSession();
 }
 
@@ -1056,19 +1094,19 @@ function netMsg(m){
     case 'joined':
       beginSession(m);NET.peer=!!m.peer;
       showWait('Verbunden – warte auf die Karte …','','');
-      netSend({k:'hello',hasState:false});
+      netSend({k:'hello',hasState:false,ship:S.shipTypes[NET.seat]});
       break;
     case 'rejoined':
       NET.connected=true;NET.names=m.names||NET.names;NET.peer=!!m.peer;
       if(!S.ships.length)showWait(NET.peer?'Wieder verbunden – lade Spielstand …':'Wieder verbunden – warte auf Mitspieler …',NET.seat===0&&!NET.peer?NET.room:'',NET.seat===0&&!NET.peer?joinLink():'');
-      if(NET.peer)netSend({k:'hello',hasState:S.ships.length>0});
+      if(NET.peer)netSend({k:'hello',hasState:S.ships.length>0,ship:S.shipTypes[NET.seat]});
       toast('Wieder verbunden');updateHud();syncPanel();
       break;
     case 'peer-joined':
       NET.peer=true;NET.names=m.names||NET.names;
       toast(`${names()[1-NET.seat]} ist verbunden`);
       chatSys(`${names()[1-NET.seat]} ist verbunden`);
-      netSend({k:'hello',hasState:S.ships.length>0});
+      netSend({k:'hello',hasState:S.ships.length>0,ship:S.shipTypes[NET.seat]});
       updateHud();syncPanel();
       break;
     case 'peer-left':
@@ -1102,6 +1140,7 @@ function netGame(d){
   const other=1-NET.seat;
   switch(d.k){
     case 'hello': {
+      if(d.ship)S.shipTypes[other]=validShip(d.ship);
       const mine=S.ships.length>0;
       if(NET.seat===0){
         if(mine){if(S.phase==='flying')NET.pendingSnapshot=true;else netSend(snapshot());}
@@ -1298,6 +1337,51 @@ $('netPw').addEventListener('keydown',e=>{if(e.key==='Enter')netCreate();});
   }
 })();
 
+/* ---------- Raumschiff-Typen (eigene Entwürfe) ---------- */
+// Gezeichnet in Schiffskoordinaten: Spitze zeigt nach +x, Größe etwa wie die Trefferzone (Radius 13)
+// u = Breite eines Bildschirmpunkts in diesen Koordinaten (für gleich dicke Linien)
+function drawShipShape(c,type,col,u,blur){
+  const hi='rgba(255,255,255,.9)',edge='rgba(255,255,255,.75)';
+  const fillGlow=()=>{c.shadowColor=col;c.shadowBlur=blur;c.fillStyle=col;c.fill();c.shadowBlur=0;c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();};
+  const dot=(x,y,r,f)=>{c.fillStyle=f||hi;c.beginPath();c.arc(x,y,r,0,7);c.fill();};
+  c.lineJoin='round';
+  switch(type){
+    case 'untertasse':
+      c.beginPath();c.ellipse(0,0,16,7,0,0,7);fillGlow();
+      c.beginPath();c.ellipse(1,0,7,4.5,0,0,7);c.fillStyle='rgba(255,255,255,.55)';c.fill();
+      for(let k=0;k<6;k++){const a=k/6*Math.PI*2;dot(Math.cos(a)*12.5,Math.sin(a)*5,1.1,k%2?'#fff6a0':hi);}
+      c.beginPath();c.moveTo(16,0);c.lineTo(21,-2.5);c.lineTo(21,2.5);c.closePath();c.fillStyle=col;c.fill(); // Richtung
+      break;
+    case 'rakete':
+      c.beginPath();c.moveTo(19,0);c.bezierCurveTo(12,-6,-4,-6,-11,-4);c.lineTo(-11,4);c.bezierCurveTo(-4,6,12,6,19,0);c.closePath();fillGlow();
+      for(const sg of[-1,1]){c.beginPath();c.moveTo(-3,4*sg);c.lineTo(-14,11*sg);c.lineTo(-11,4*sg);c.closePath();c.fillStyle=col;c.fill();c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();}
+      dot(6,0,2.6);dot(-12,0,2.2,'rgba(255,190,90,.9)');
+      break;
+    case 'frachter':
+      c.beginPath();c.roundRect(-12,-8,24,16,4);fillGlow();
+      c.beginPath();c.roundRect(-17,-8,6,5,1.5);c.roundRect(-17,3,6,5,1.5);c.fillStyle=col;c.fill();c.strokeStyle=edge;c.stroke();
+      c.beginPath();c.roundRect(9,-5,8,10,3);c.fillStyle=col;c.fill();c.stroke();
+      dot(13,0,2.4);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(-8,-4,14,2);c.fillRect(-8,2,14,2);
+      dot(-17,-5.5,1.4,'rgba(255,190,90,.9)');dot(-17,5.5,1.4,'rgba(255,190,90,.9)');
+      break;
+    case 'delta':
+      c.beginPath();c.moveTo(20,0);c.lineTo(-11,-14);c.lineTo(-6,0);c.lineTo(-11,14);c.closePath();fillGlow();
+      c.beginPath();c.moveTo(14,0);c.lineTo(-2,-3);c.lineTo(-2,3);c.closePath();c.fillStyle='rgba(255,255,255,.55)';c.fill();
+      dot(-9,-6,1.8,'rgba(255,190,90,.9)');dot(-9,6,1.8,'rgba(255,190,90,.9)');
+      break;
+    case 'kugel':
+      c.beginPath();c.moveTo(9,0);c.lineTo(19,0);c.strokeStyle=edge;c.lineWidth=1.6*u;c.stroke();dot(19,0,1.8,'#fff6a0');
+      for(const sg of[-1,1]){c.beginPath();c.moveTo(-6,7*sg);c.lineTo(-14,12*sg);c.lineTo(-9,4*sg);c.closePath();c.fillStyle=col;c.fill();c.strokeStyle=edge;c.lineWidth=1.2*u;c.stroke();}
+      c.beginPath();c.arc(0,0,10,0,7);fillGlow();
+      c.beginPath();c.ellipse(0,0,10,3,0,0,7);c.strokeStyle='rgba(255,255,255,.45)';c.lineWidth=1.2*u;c.stroke();
+      dot(4,-3,2.4);
+      break;
+    default: // Pfeil
+      c.beginPath();c.moveTo(17,0);c.lineTo(-11,-10);c.lineTo(-5,0);c.lineTo(-11,10);c.closePath();fillGlow();
+      dot(3,0,2.6);
+  }
+}
+
 /* ---------- Zielpfeil ---------- */
 // Alle Maße in Bildschirmpunkten, damit Pfeil und Schiffe auch auf dem Handy gut sichtbar sind
 const SHIP_MIN_PX=12,ARROW_MIN=22;
@@ -1344,9 +1428,62 @@ function aimAt(e){
   setAngle(Math.atan2(-dy,dx)*180/Math.PI);
   setPower((d-arrowStart()-ARROW_MIN)/arrowSpan()*100);
 }
-cv.addEventListener('pointerdown',e=>{S.aiming=true;aimAt(e);});
-addEventListener('pointermove',e=>{if(S.aiming)aimAt(e);});
-addEventListener('pointerup',()=>S.aiming=false);
+/* ---------- Zoom ---------- */
+const ZOOM_MIN=.12,ZOOM_MAX=2.5;
+// um einen Bildschirmpunkt herum zoomen (der Punkt bleibt unter Maus/Fingern stehen)
+function zoomAt(px,py,f){
+  const wx=(px-view.ox)/view.s,wy=(py-view.oy)/view.s;
+  CAM.zoom=Math.min(ZOOM_MAX,Math.max(ZOOM_MIN,CAM.zoom*f));
+  const s=CAM.s0*CAM.zoom;
+  CAM.x=wx-(px-CAM.cx)/s;CAM.y=wy-(py-CAM.cy)/s;
+  if(Math.abs(CAM.zoom-1)<.03){CAM.zoom=1;CAM.x=W/2;CAM.y=H/2;} // bei 100 % sauber einrasten
+  layout();
+}
+function zoomBy(f){zoomAt(CAM.cx,CAM.cy,f);}
+function zoomReset(){CAM.zoom=1;CAM.x=W/2;CAM.y=H/2;layout();}
+// so weit herauszoomen, dass Spielfeld und alle Flugbahnen sichtbar sind
+function zoomFit(){
+  let x0=0,y0=0,x1=W,y1=H;
+  const add=pts=>{for(let i=0;i<pts.length;i+=4){const q=pts[i];if(q[0]<x0)x0=q[0];if(q[0]>x1)x1=q[0];if(q[1]<y0)y0=q[1];if(q[1]>y1)y1=q[1];}};
+  for(const pl of S.players)for(const t of pl.trails)add(t);
+  if(S.shot){add(S.shot.pts);add([[S.shot.x,S.shot.y]]);}
+  const m=60;x0-=m;y0-=m;x1+=m;y1+=m;
+  const s=Math.min((CAM.cx*2-16)/(x1-x0),(($('panel').getBoundingClientRect().top-$('hud').offsetHeight)-8)/(y1-y0));
+  CAM.zoom=Math.min(1,Math.max(ZOOM_MIN,s/CAM.s0));
+  CAM.x=(x0+x1)/2;CAM.y=(y0+y1)/2;
+  if(CAM.zoom>=1){CAM.x=W/2;CAM.y=H/2;}
+  layout();
+  toast(CAM.zoom<1?`Übersicht: ${Math.round(CAM.zoom*100)} %`:'Alle Bahnen liegen im Spielfeld');
+}
+$('zoomIn').onclick=()=>zoomBy(1.25);
+$('zoomOut').onclick=()=>zoomBy(1/1.25);
+$('zoomFit').onclick=()=>{if(CAM.zoom<1)zoomReset();else zoomFit();};
+cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*.0015));},{passive:false});
+cv.addEventListener('dblclick',zoomReset);
+
+// Zeiger: ein Finger/Maus = zielen, zwei Finger = zoomen (Pinch)
+const touches=new Map();let pinch=null;
+cv.addEventListener('pointerdown',e=>{
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size===2){
+    S.aiming=false;
+    const [a,b]=[...touches.values()];
+    pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1};
+    return;
+  }
+  S.aiming=true;aimAt(e);
+});
+addEventListener('pointermove',e=>{
+  if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&touches.size===2){
+    const [a,b]=[...touches.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1;
+    zoomAt((a.x+b.x)/2,(a.y+b.y)/2,d/pinch.d);pinch.d=d;
+    return;
+  }
+  if(S.aiming)aimAt(e);
+});
+const ptrEnd=e=>{touches.delete(e.pointerId);if(touches.size<2)pinch=null;if(!touches.size)S.aiming=false;};
+addEventListener('pointerup',ptrEnd);addEventListener('pointercancel',ptrEnd);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){layout();if(SFX.ctx&&SFX.ctx.state==='suspended')SFX.ctx.resume().catch(()=>{});}});
 addEventListener('pageshow',()=>layout());
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(layout,120);});
