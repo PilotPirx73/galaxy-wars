@@ -239,14 +239,19 @@ function flyStop(){
 function setMuted(m){
   SFX.muted=m;$('muteBtn').textContent=m?'🔇':'🔊';
   try{localStorage.setItem('galaxyWarsMuted',m?'1':'0');}catch(e){}
-  if(m)flyStop();else{audioInit();if(S.phase==='flying')flyStart();}
-  // Diagnose: kurzer Testton und Anzeige, was der Browser meldet
-  if(m)toast('Ton aus');
-  else setTimeout(()=>{
-    snd.click();
+  if(m){flyStop();toast('Ton aus');return;}
+  // Beim Einschalten einen frischen Ton-Kanal öffnen: Safari bleibt sonst am Ausgabegerät hängen,
+  // das beim ersten Öffnen aktiv war (z. B. nach dem Wechsel zu/von AirPods)
+  flyStop();
+  if(SFX.ctx){try{SFX.ctx.close();}catch(e){}SFX.ctx=null;}
+  audioInit();
+  if(S.phase==='flying')flyStart();
+  // Diagnose: deutlicher Testton und Anzeige, was der Browser meldet
+  setTimeout(()=>{
+    tone({type:'triangle',f0:660,f1:660,dur:.18,vol:.18});tone({type:'triangle',f0:990,f1:990,dur:.22,vol:.15,delay:.14});
     const st=SFX.ctx?SFX.ctx.state:'none';
-    toast(st==='running'?'🔊 Ton an – läuft':st==='suspended'?'🔇 Ton an – vom Browser blockiert (Schloss-Symbol → Automatische Wiedergabe erlauben)':'🔇 Ton an – Audio nicht verfügbar'+(SFX.err?': '+SFX.err:''));
-  },200);
+    toast(st==='running'?'🔊 Ton an – läuft (Testton gespielt)':st==='suspended'?'🔇 Ton an – vom Browser blockiert (Schloss-Symbol → Automatische Wiedergabe erlauben)':'🔇 Ton an – Audio nicht verfügbar'+(SFX.err?': '+SFX.err:''));
+  },150);
 }
 
 /* ---------- Level ---------- */
