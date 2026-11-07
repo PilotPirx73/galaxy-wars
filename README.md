@@ -33,7 +33,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 - **Sonne** in der Mitte, mit besonders starker Schwerkraft.
 - **Schwarze Löcher:** klein, aber sehr stark. Wahlweise versteckt: Sie zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken, was ihnen zu nahe kommt.
 - **Computer-Gegner** in drei Stufen und mit drei Persönlichkeiten: *Ausgewogen*, *Vorsichtig* (meidet Himmelskörper) und *Trickser* (liebt Schleuderbahnen). Er rechnet Hunderte Probeschüsse im Kopf durch, verzieht den ersten Schuss absichtlich und schießt sich dann systematisch ein. Versteckte Schwarze Löcher kennt er auch nicht.
-- **Endlos-Modus:** Schüsse fliegen ohne Zeitlimit, bis sie treffen oder du sie beendest.
+- **Wie im Original:** Schüsse haben kein Zeitlimit und lassen sich nicht abbrechen – sie fliegen, bis sie etwas treffen oder das Sonnensystem verlassen. Auch der eigene Querschläger kann einen also noch erwischen.
 - **Alte Flugbahnen** bleiben gestrichelt sichtbar, damit man nachkorrigieren kann.
 - **Sechs Raumschiff-Typen** (eigene Entwürfe): Pfeil, Untertasse, Retro-Rakete, Frachter, Delta-Jäger und Kugelsonde – online sieht der Mitspieler dein Schiff.
 - **Zoom:** Mausrad, zwei Finger oder − / + ; „Alle Bahnen zeigen“ (Taste Z) zoomt so weit heraus, dass auch weit ausholende Flugbahnen ins Bild passen.
@@ -47,7 +47,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 | ↑ / ↓ | Geschwindigkeit |
 | Shift | fein einstellen |
 | Pfeilspitze mit Maus/Finger ziehen | Richtung und Geschwindigkeit |
-| Leertaste / Enter | Feuer, während des Flugs: Schuss beenden |
+| Leertaste / Enter | Feuer |
 | N | neue Karte |
 | M | Ton an/aus |
 | F | Fluggeräusch an/aus |

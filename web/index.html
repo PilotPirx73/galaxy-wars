@@ -112,7 +112,6 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label>Sonne in der Mitte <input type="checkbox" id="sun" checked></label>
     <label>Schwarze Löcher <select id="bh"><option value="0">Keine</option><option value="1" selected>1</option><option value="2">2</option></select></label>
     <label>Schwarze Löcher versteckt <input type="checkbox" id="bhHidden" checked></label>
-    <label>Schüsse fliegen endlos (kein Zeitlimit) <input type="checkbox" id="endless"></label>
     <label>Fluggeräusch <input type="checkbox" id="flySound" checked></label>
     <label>Alte Flugbahnen zeigen <input type="checkbox" id="trails" checked></label>
     <label><span>Dichte anzeigen <span style="font-size:12px"><b style="color:#5be37a">● leicht</b> <b style="color:#ffd24a">● mittel</b> <b style="color:#ff5a4a">● schwer</b></span></span> <input type="checkbox" id="showDens" checked></label>
@@ -120,7 +119,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     </div>
     <div class="help">
       <p><b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Der Computer-Gegner rechnet Probeschüsse im Kopf durch und schießt sich dann ein – der Vorsichtige meidet Himmelskörper, der Trickser liebt Schleuderbahnen. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.</p>
-      <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Mausrad/zwei Finger, + / − = Zoom · Z = alle Bahnen zeigen · 0 = Zoom zurücksetzen · Esc = Menü</p>
+      <p><b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Mausrad/zwei Finger, + / − = Zoom · Z = alle Bahnen zeigen · 0 = Zoom zurücksetzen · Esc = Menü</p>
       <p><b>Über das Spiel:</b> Eine Hommage an „Gravity Wars“ auf dem Commodore Amiga, das damals als Public-Domain-Spiel kursierte. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt – übernommen ist nur die Spielidee. Komplett mit Claude (Anthropic) programmiert.</p>
     </div></div>
   </div>
@@ -143,7 +142,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 
 <script>
 'use strict';
-const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5.2,MAX_T=30;
+const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5.2,MAX_T=30,OUT_R=W*3,MAX_FLIGHT=300; // Systemgrenze: 3 Feldbreiten vom Zentrum; Notbremse nur gegen ewige Umlaufbahnen
 const COLORS=['#4fd1ff','#ff6b8b'];
 // Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
 const SHIP_TYPES=[
@@ -160,7 +159,7 @@ const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
 let dpr=1,view={s:1,ox:0,oy:0},last=performance.now(),toastTimer=0;
 
-const S={shipTypes:['pfeil','pfeil'],mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,endless:false,flySound:true,scores:[0,0],turn:0,starter:0,
+const S={shipTypes:['pfeil','pfeil'],mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,flySound:true,scores:[0,0],turn:0,starter:0,
   players:[{angle:0,power:55,trails:[]},{angle:180,power:55,trails:[]}],
   ships:[],planets:[],stars:[],nebula:[],shot:null,phase:'menu',prevPhase:null,particles:[],aiTurns:0,ai:null,acc:0,aiming:false};
 
@@ -305,7 +304,7 @@ function newLevel(){
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
   S.players[0].angle=0;S.players[1].angle=180;
   S.players.forEach(p=>{p.power=55;p.trails=[];});
-  S.shot=null;S.particles=[];S.aiTurns=0;S.ai=null;S.undo=null;
+  S.shot=null;S.particles=[];S.aiTurns=0;S.ai=null;
   S.turn=S.starter;S.phase='aim';
   $('next').disabled=false;$('next').textContent='Nächste Runde';
   renderBg();syncPanel();updateHud();maybeAI();
@@ -585,7 +584,7 @@ function drawPlanet(b,p){
 }
 
 /* ---------- Physics ---------- */
-function stepShot(o,dt,bodies=S.planets,limits=!S.endless){
+function stepShot(o,dt,bodies=S.planets,aiSim=false){
   let ax=0,ay=0;
   for(const p of bodies){
     const dx=p.x-o.x,dy=p.y-o.y,d2=dx*dx+dy*dy,d=Math.sqrt(d2);
@@ -601,10 +600,14 @@ function stepShot(o,dt,bodies=S.planets,limits=!S.endless){
     const sx=s.x-o.x,sy=s.y-o.y;
     if(Math.sqrt(sx*sx+sy*sy)<SHIP_R+SHOT_R)return{type:'ship',idx:i};
   }
-  if(limits){
+  if(aiSim){ // Vorausberechnung des Computers: kleiner Rahmen reicht
     if(o.x<-W*1.2||o.x>W*2.2||o.y<-H*1.2||o.y>H*2.2)return{type:'out'};
-    if(o.t>MAX_T)return{type:'time'};
-  }else if(Math.abs(o.x)>W*100||Math.abs(o.y)>H*100)return{type:'out'}; // so weit draußen kommt nichts mehr zurück
+  }else{
+    // Ein Schuss bleibt gültig, bis er etwas trifft oder das Sonnensystem verlässt
+    const cx=o.x-W/2,cy=o.y-H/2;
+    if(cx*cx+cy*cy>OUT_R*OUT_R)return{type:'out'};
+    if(o.t>MAX_FLIGHT)return{type:'time'};
+  }
   return null;
 }
 function launch(i,angle,power){
@@ -632,15 +635,13 @@ function trailPush(o){
 }
 function startShot(init){
   S.shot={...init,t:0,pts:[[init.x,init.y]],n:0,init};
-  S.phase='flying';S.acc=0;S.undo=null;
+  S.phase='flying';S.acc=0;
   snd.fire();flyStart();
   syncPanel();updateHud();
 }
 
 function resolve(res){
   const o=S.shot,owner=o.owner,n=names();
-  if(isOnline())S.undo={init:o.init,n:o.n,scores:[...S.scores],turn:S.turn,starter:S.starter,
-    dead:S.ships.map(s=>s.dead),trails:S.players.map(p=>p.trails.slice())};
   o.pts.push([o.x,o.y]);
   if(S.keepTrails){const tr=S.players[owner].trails;tr.push(o.pts);if(tr.length>4)tr.shift();}
   S.shot=null;flyStop();
@@ -664,8 +665,7 @@ function resolve(res){
   if(res.type==='planet'){explode(o.x,o.y,'#ffd27a',22,false);snd.planet();toast('Einschlag auf Planet');}
   else if(res.type==='sun'){explode(o.x,o.y,'#ffb347',30,false);snd.sun();toast('In der Sonne verglüht');}
   else if(res.type==='bh'){implode(res.p);res.p.revealed=true;snd.bh();toast('Vom Schwarzen Loch verschluckt');}
-  else if(res.type==='out'){snd.lost();toast('Im All verschollen');}
-  else if(res.type==='abort'){snd.lost();toast('Schuss beendet');}
+  else if(res.type==='out'){snd.lost();toast('Schuss hat das System verlassen');}
   else{snd.lost();toast('Schuss verglüht im Orbit');}
   S.turn=1-S.turn;S.phase='aim';
   syncPanel();updateHud();maybeAI();
@@ -850,16 +850,15 @@ function syncPanel(){
   if(document.activeElement!==$('powN'))$('powN').value=p;
   const dis=!humanAim(),flying=S.phase==='flying';
   for(const id of['ang','angN','pow','powN'])$(id).disabled=dis;
-  const othersShot=flying&&isOnline()&&S.shot&&S.shot.owner!==NET.seat;
-  $('fire').disabled=(dis&&!flying)||(flying&&isOnline()&&!NET.connected)||othersShot;
-  $('fire').textContent=othersShot?'Schuss unterwegs …':flying?'Schuss beenden':'Feuer!';
+  $('fire').disabled=dis||flying; // ein fliegender Schuss lässt sich nicht abbrechen
+  $('fire').textContent=flying?'Schuss unterwegs …':'Feuer!';
   if(flying)$('fire').style.background=COLORS[S.shot?S.shot.owner:S.turn];
 }
 function updateHud(){
   $('chatBtn').classList.toggle('hidden',!isOnline());
   const n=names(),on=isOnline(),du=i=>on&&NET.seat===i?' (du)':'';
   $('s1').textContent=`${n[0]}${du(0)} · ${S.scores[0]}`;$('s2').textContent=`${S.scores[1]} · ${n[1]}${du(1)}`;
-  let st={aim:`${n[S.turn]} ${S.mode==='cpu'&&S.turn===0?'bist':'ist'} dran`,ai:'Computer zielt …',flying:(isOnline()&&S.shot&&S.shot.owner!==NET.seat)?'Schuss unterwegs …':'Schuss unterwegs … Leertaste = beenden',over:'Treffer!',menu:''}[S.phase]||'';
+  let st={aim:`${n[S.turn]} ${S.mode==='cpu'&&S.turn===0?'bist':'ist'} dran`,ai:'Computer zielt …',flying:(isOnline()&&S.shot&&S.shot.owner!==NET.seat)?'Schuss unterwegs …':'Schuss unterwegs …',over:'Treffer!',menu:''}[S.phase]||'';
   if(on){
     if(!NET.connected)st='Verbindung unterbrochen – verbinde neu …';
     else if(!NET.peer)st=`Warte auf ${n[1-NET.seat]} …`;
@@ -874,7 +873,7 @@ function readSettings(){
   if(isOnline())S.shipTypes[NET.seat]=validShip($('ship0').value);
   else S.shipTypes=[validShip($('ship0').value),validShip($('ship1').value)];S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
   S.sun=$('sun').checked;S.nBH=+$('bh').value;S.bhHidden=$('bhHidden').checked;
-  S.endless=$('endless').checked;S.flySound=$('flySound').checked;
+  S.flySound=$('flySound').checked;
 }
 function startGame(){
   S.mode=$('mode').value;readSettings();
@@ -953,22 +952,13 @@ $('muteBtn').textContent=SFX.muted?'🔇':'🔊';
 // Ton freischalten: Browser erlauben Audio erst nach einer Nutzeraktion – Firefox und Safari zählen
 // dafür nur bestimmte Ereignisse (Klick/Loslassen), Chrome auch das Herunterdrücken. Darum alle abfangen.
 for(const ev of['pointerdown','pointerup','click','touchend','keydown','keyup'])addEventListener(ev,audioInit,true);$('next').onclick=nextRound;
-$('fire').onclick=()=>{if(S.phase==='flying')endShot();else if(humanAim())fire();};
-function endShot(){
-  if(S.phase!=='flying'||!S.shot||S.shot.t<.4)return; // kurz nach dem Abschuss ignorieren (Doppeldruck)
-  if(isOnline()){
-    if(!NET.connected||S.shot.owner!==NET.seat)return; // nur wer geschossen hat, darf beenden
-    netSend({k:'abort',n:S.shot.n}); // der Mitspieler beendet den Schuss an genau derselben Stelle
-  }
-  resolve({type:'abort'});
-}
+$('fire').onclick=()=>{if(S.phase!=='flying'&&humanAim())fire();};
 function setFlySound(on){
   S.flySound=on;$('flySound').checked=on;
   if(!on)flyStop();else if(S.phase==='flying')flyStart();
   toast(on?'Fluggeräusch an':'Fluggeräusch aus');
 }
 $('flySound').onchange=e=>{S.flySound=e.target.checked;};
-$('endless').onchange=e=>{S.endless=e.target.checked;};
 $('showDens').onchange=e=>{S.showDens=e.target.checked;renderBg();};
 $('ang').oninput=e=>setAngle(+e.target.value);
 $('pow').oninput=e=>setPower(+e.target.value);
@@ -996,7 +986,7 @@ addEventListener('keydown',e=>{
   if((e.key==='m'||e.key==='M')&&!typing){setMuted(!SFX.muted);return;}
   if((e.key==='f'||e.key==='F')&&!typing){setFlySound(!S.flySound);return;}
   if(S.phase==='flying'){
-    if((e.key===' '||e.key==='Enter'||e.key==='Backspace')&&!e.repeat){e.preventDefault();endShot();}
+    if(e.key===' '||e.key==='Enter')e.preventDefault(); // Schüsse lassen sich nicht abbrechen
     return;
   }
   if(S.phase==='over'){if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!$('msg').classList.contains('hidden'))nextRound();}return;}
@@ -1173,11 +1163,6 @@ function netGame(d){
       S.players[d.init.owner].angle=+d.a||0;S.players[d.init.owner].power=+d.p||0;
       startShot(d.init);
       break;
-    case 'abort': {
-      const own=S.shot?S.shot.owner:S.undo?S.undo.init.owner:-1;
-      if(own===other)abortAt(d.n|0); // nur der Schütze darf seinen Schuss beenden
-      break;
-    }
     case 'next':
       if(NET.seat===0&&S.phase==='over')nextRound();
       break;
@@ -1201,17 +1186,17 @@ function startOnlineGame(){
 // lange Flugbahnen für die Übertragung ausdünnen
 function thin(pts,max){if(pts.length<=max)return pts;const k=Math.ceil(pts.length/max);return pts.filter((_,i)=>i%k===0||i===pts.length-1);}
 function snapshot(){
-  return{k:'state',planets:S.planets.map(({_sprite,_sc,...p})=>p),ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,endless:S.endless,
+  return{k:'state',planets:S.planets.map(({_sprite,_sc,...p})=>p),ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,
     players:S.players.map(p=>({angle:p.angle,power:p.power,trails:p.trails.map(t=>thin(t,250))})),
     phase:S.phase==='over'?'over':'aim'};
 }
 function applyState(d){
   S.planets=d.planets||[];S.ships=d.ships||[];S.starter=d.starter|0;S.turn=d.turn|0;
-  S.scores=d.scores||[0,0];S.endless=!!d.endless;
+  S.scores=d.scores||[0,0];
   (d.players||[]).forEach((p,i)=>{S.players[i].angle=p.angle;S.players[i].power=p.power;S.players[i].trails=p.trails||[];});
   S.stars=Array.from({length:280},()=>({x:Math.random(),y:Math.random(),r:rnd(.3,1.4),a:rnd(.25,1)}));
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
-  S.shot=null;S.particles=[];S.undo=null;flyStop();clearTimeout(S.overTimer);
+  S.shot=null;S.particles=[];flyStop();clearTimeout(S.overTimer);
   hideWait();$('menu').classList.add('hidden');
   $('next').disabled=false;$('next').textContent='Nächste Runde';
   S.phase=d.phase==='over'?'over':'aim';
@@ -1224,35 +1209,6 @@ function applyState(d){
 }
 function netAfterResolve(){
   if(isOnline()&&NET.pendingSnapshot){NET.pendingSnapshot=false;netSend(snapshot());}
-}
-
-// Schuss nach genau n Rechenschritten beenden – so wie beim Mitspieler
-function rebuildShot(init,n){
-  const o={...init,t:0,pts:[[init.x,init.y]],n:0,init};
-  for(let i=0;i<n;i++){stepShot(o,DT);o.n++;trailPush(o);}
-  return o;
-}
-function abortAt(n){
-  if(S.shot){
-    if(S.shot.n>n)S.shot=rebuildShot(S.shot.init,n);
-    else while(S.shot.n<n){
-      const r=stepShot(S.shot,DT);
-      S.shot.n++;trailPush(S.shot);
-      if(r){resolve(r);return;}
-    }
-    resolve({type:'abort'});
-    return;
-  }
-  // Hier ist der Schuss schon von selbst zu Ende gegangen, beim Mitspieler aber vorher beendet worden:
-  // zurückdrehen und an derselben Stelle beenden
-  const u=S.undo;
-  if(!u||u.n<=n)return;
-  clearTimeout(S.overTimer);$('msg').classList.add('hidden');
-  S.scores=u.scores;S.turn=u.turn;S.starter=u.starter;
-  u.dead.forEach((dd,i)=>{S.ships[i].dead=dd;});
-  S.players.forEach((p,i)=>{p.trails=u.trails[i];});
-  S.shot=rebuildShot(u.init,n);S.phase='flying';S.undo=null;
-  resolve({type:'abort'});
 }
 
 let aimTimer=0;
