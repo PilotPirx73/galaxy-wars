@@ -47,6 +47,17 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 .code{font-size:44px;letter-spacing:.3em;text-align:center;font-weight:700;padding-left:.3em}
 #waitTitle{font-size:20px;text-align:center;font-weight:700}
 #waitSub{text-align:center;color:var(--muted);font-size:13px;word-break:break-all}
+#chatBtn{position:relative}
+#chatBadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--p2);color:#05060d;font-size:11px;font-weight:700;line-height:18px}
+#chatBadge:empty{display:none}
+#chat{position:fixed;left:12px;bottom:80px;width:min(340px,calc(100vw - 24px));max-height:42vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;z-index:3;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+#chatHead{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+#chatHead button{padding:0 6px;border:none;background:none;font-size:16px;color:var(--muted)}
+#chatLog{overflow-y:auto;padding:8px 10px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:3px;min-height:70px;user-select:text;-webkit-user-select:text;word-wrap:break-word}
+#chatLog .sys{color:var(--muted);font-style:italic;font-size:12px}
+#chatForm{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+#chatInput{flex:1;min-width:0;font:inherit;font-size:13px;background:#0b0e1f;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+#chatForm button{padding:6px 10px}
 </style>
 </head>
 <body>
@@ -59,6 +70,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
   <label>Geschwindigkeit <input type="range" id="pow" min="0" max="100" step="0.1"><input type="number" id="powN" step="0.1" min="0" max="100"></label>
   <button id="fire">Feuer!</button>
   <button id="muteBtn" title="Ton an/aus (M)">🔊</button>
+  <button id="chatBtn" class="hidden" title="Chat (C)">💬<span id="chatBadge"></span></button>
   <button id="menuBtn" title="Menü (Esc)">Menü</button>
 </div>
 
@@ -86,10 +98,16 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <div class="row"><button id="resume" class="hidden">Fortsetzen</button><button id="start">Neues Spiel</button><button id="leave" class="hidden">Online-Spiel verlassen</button></div>
     <div class="help">
       <b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.<br>
-      <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Maus/Finger auf dem Spielfeld halten = zielen · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · Esc = Menü<br>
+      <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Maus/Finger auf dem Spielfeld halten = zielen · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü<br>
       <b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.
     </div>
   </div>
+</div>
+
+<div id="chat" class="hidden">
+  <div id="chatHead"><span>Chat</span><button id="chatClose" title="Schließen (Esc)">×</button></div>
+  <div id="chatLog"></div>
+  <form id="chatForm" autocomplete="off"><input id="chatInput" maxlength="300" placeholder="Nachricht …"><button>Senden</button></form>
 </div>
 
 <div id="wait" class="overlay hidden">
@@ -243,6 +261,7 @@ function layout(){
   const aw=cw-16,ah=Math.max(100,ch-top-bot-8);
   const s=Math.min(aw/W,ah/H);
   view={s,ox:(cw-W*s)/2,oy:top+(ah-H*s)/2+4};
+  chatPlace();
   renderBg();
 }
 function setWorld(c){c.setTransform(dpr*view.s,0,0,dpr*view.s,dpr*view.ox,dpr*view.oy);}
@@ -741,6 +760,7 @@ function syncPanel(){
   if(flying)$('fire').style.background=COLORS[S.shot?S.shot.owner:S.turn];
 }
 function updateHud(){
+  $('chatBtn').classList.toggle('hidden',!isOnline());
   const n=names(),on=isOnline(),du=i=>on&&NET.seat===i?' (du)':'';
   $('s1').textContent=`${n[0]}${du(0)} · ${S.scores[0]}`;$('s2').textContent=`${S.scores[1]} · ${n[1]}${du(1)}`;
   let st={aim:`${n[S.turn]} ${S.mode==='cpu'&&S.turn===0?'bist':'ist'} dran`,ai:'Computer zielt …',flying:'Schuss unterwegs … Leertaste = beenden',over:'Treffer!',menu:''}[S.phase]||'';
@@ -829,12 +849,17 @@ $('angN').onchange=e=>setAngle(+e.target.value||0);
 $('powN').onchange=e=>setPower(+e.target.value||0);
 
 addEventListener('keydown',e=>{
+  if(e.target.id==='chatInput'){ // beim Tippen im Chat keine Spieltasten
+    if(e.key==='Escape'){e.preventDefault();chatToggle(false);}
+    return;
+  }
   if(menuOpen()||!$('wait').classList.contains('hidden')){
     if(e.key==='Escape'&&menuOpen()&&S.ships.length&&!$('resume').classList.contains('hidden'))resume();
     return;
   }
   if(e.key==='Escape'){showMenu();return;}
   const typing=e.target.tagName==='INPUT'&&(e.target.type==='number'||e.target.type==='text');
+  if((e.key==='c'||e.key==='C')&&!typing&&isOnline()){e.preventDefault();chatToggle(true);return;}
   if((e.key==='m'||e.key==='M')&&!typing){setMuted(!SFX.muted);return;}
   if((e.key==='f'||e.key==='F')&&!typing){setFlySound(!S.flySound);return;}
   if(S.phase==='flying'){
@@ -916,6 +941,7 @@ function netLeave(){
   Object.assign(NET,{ws:null,room:null,token:null,peer:false,connected:false,pendingSnapshot:false,names:['','']});
   clearSession();flyStop();
   S.ships=[];S.planets=[];S.shot=null;S.phase='menu';S.mode='pvp';$('mode').value='pvp';
+  chatToggle(false);$('chatLog').textContent='';CHAT.unread=0;chatBadge();
   hideWait();$('msg').classList.add('hidden');renderBg();updateMenu();$('menu').classList.remove('hidden');updateHud();syncPanel();
 }
 function netError(t){
@@ -949,12 +975,14 @@ function netMsg(m){
     case 'peer-joined':
       NET.peer=true;NET.names=m.names||NET.names;
       toast(`${names()[1-NET.seat]} ist verbunden`);
+      chatSys(`${names()[1-NET.seat]} ist verbunden`);
       netSend({k:'hello',hasState:S.ships.length>0});
       updateHud();syncPanel();
       break;
     case 'peer-left':
       NET.peer=false;
       toast(m.final?`${names()[1-NET.seat]} hat das Spiel verlassen`:`${names()[1-NET.seat]} ist getrennt – warte …`);
+      chatSys(m.final?`${names()[1-NET.seat]} hat das Spiel verlassen`:`${names()[1-NET.seat]} ist getrennt`);
       updateHud();syncPanel();
       break;
     case 'closed':
@@ -1008,6 +1036,9 @@ function netGame(d){
       break;
     case 'next':
       if(NET.seat===0&&S.phase==='over')nextRound();
+      break;
+    case 'chat':
+      if(typeof d.text==='string'&&d.text.trim())chatAdd(other,d.text.slice(0,300),true);
       break;
   }
 }
@@ -1095,6 +1126,50 @@ function hideWait(){$('wait').classList.add('hidden');}
 $('netCreate').onclick=netCreate;
 $('netJoin').onclick=netJoin;
 $('netCode').addEventListener('keydown',e=>{if(e.key==='Enter')netJoin();});
+
+/* ---------- Chat (nur online) ---------- */
+const CHAT={unread:0};
+const chatOpen=()=>!$('chat').classList.contains('hidden');
+function chatBadge(){$('chatBadge').textContent=CHAT.unread?String(Math.min(CHAT.unread,99)):'';}
+function chatPlace(){$('chat').style.bottom=($('panel').offsetHeight+10)+'px';}
+function chatToggle(open){
+  if(open===undefined)open=!chatOpen();
+  if(open&&!isOnline())return;
+  $('chat').classList.toggle('hidden',!open);
+  if(open){chatPlace();CHAT.unread=0;chatBadge();const l=$('chatLog');l.scrollTop=l.scrollHeight;$('chatInput').focus();}
+  else $('chatInput').blur();
+}
+function chatLine(el){
+  const l=$('chatLog'),atEnd=l.scrollHeight-l.scrollTop-l.clientHeight<30;
+  l.append(el);
+  while(l.childElementCount>200)l.firstElementChild.remove();
+  if(atEnd||chatOpen())l.scrollTop=l.scrollHeight;
+}
+function chatAdd(seat,text,incoming){
+  const row=document.createElement('div'),who=document.createElement('b');
+  who.textContent=names()[seat]+': ';who.style.color=COLORS[seat];
+  row.append(who,document.createTextNode(text)); // nur Text, kein HTML
+  chatLine(row);
+  if(incoming&&!(chatOpen()&&document.activeElement===$('chatInput'))){
+    if(!chatOpen()){CHAT.unread++;chatBadge();}
+    toast(`💬 ${names()[seat]}: ${text.length>60?text.slice(0,60)+'…':text}`);
+    snd.click();
+  }
+}
+function chatSys(text){
+  if(!isOnline())return;
+  const row=document.createElement('div');row.className='sys';row.textContent=text;chatLine(row);
+}
+$('chatBtn').onclick=()=>chatToggle();
+$('chatClose').onclick=()=>chatToggle(false);
+$('chatForm').onsubmit=e=>{
+  e.preventDefault();
+  const t=$('chatInput').value.trim().slice(0,300);
+  if(!t)return;
+  if(!NET.connected||!NET.peer){chatSys('Nicht gesendet – dein Mitspieler ist gerade nicht verbunden.');return;}
+  netSend({k:'chat',text:t});chatAdd(NET.seat,t,false);
+  $('chatInput').value='';
+};
 $('leave').onclick=()=>{if(confirm('Online-Spiel wirklich verlassen?'))netLeave();};
 $('waitCancel').onclick=()=>{if(NET.room)netLeave();else{hideWait();if(NET.ws){NET.ws.onclose=null;NET.ws.close();NET.ws=null;}$('menu').classList.remove('hidden');}};
 $('copyLink').onclick=()=>{

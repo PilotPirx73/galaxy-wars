@@ -43,6 +43,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 | N | neue Karte |
 | M | Ton an/aus |
 | F | Fluggeräusch an/aus |
+| C | Chat öffnen (Online-Modus) |
 | Esc | Menü |
 
 ## Desktop-Version bauen
@@ -82,7 +83,7 @@ Die Programme sind nicht bei Apple bzw. Microsoft signiert. Beim ersten Start wa
 
 ## Online-Modus: über das Internet gegeneinander spielen
 
-Im Modus **„Online gegen Freund“** erstellt einer ein Spiel und bekommt einen vierstelligen Code bzw. einen Einladungslink, der andere tritt damit bei. Pro Zug werden nur die exakten Startwerte des Schusses übertragen. Beide Browser berechnen die Flugbahn dann selbst und kommen bit-genau auf dasselbe Ergebnis. Bei kurzen Verbindungsabbrüchen verbindet sich das Spiel automatisch neu.
+Im Modus **„Online gegen Freund“** erstellt einer ein Spiel und bekommt einen vierstelligen Code bzw. einen Einladungslink, der andere tritt damit bei. Pro Zug werden nur die exakten Startwerte des Schusses übertragen. Beide Browser berechnen die Flugbahn dann selbst und kommen bit-genau auf dasselbe Ergebnis. Bei kurzen Verbindungsabbrüchen verbindet sich das Spiel automatisch neu. Über den **💬-Chat** (Taste C) könnt ihr euch während des Spiels Nachrichten schreiben. Der Server speichert dabei nichts, er leitet die Nachrichten nur weiter.
 
 Dafür braucht es den kleinen Spielserver in `server/` (Node.js). Er liefert das Spiel aus und leitet die Züge weiter.
 
