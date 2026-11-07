@@ -38,6 +38,9 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 #msgSub{text-align:center;color:var(--muted);font-size:14px}
 #toast{position:fixed;top:44px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--fg);background:var(--panel);border:1px solid var(--line);padding:6px 14px;border-radius:20px;opacity:0;transition:opacity .3s;z-index:3;pointer-events:none}
 #toast.on{opacity:1}
+@media (max-height:500px){ /* Handy quer: kompakte, einzeilige Bedienleiste für ein größeres Spielfeld */
+#panel{gap:6px 10px;padding:5px 10px 6px}#pname,#angN,#powN{display:none}#panel input[type=range]{width:min(140px,17vw)}#panel label{font-size:12px;gap:6px}#panel button{padding:5px 10px}#fire{padding:6px 12px}#hud{padding:5px 12px;font-size:12px}#status{font-size:11px}}
+@media (max-width:520px){#hud{font-size:12px;padding:8px 10px}#status{font-size:11px;padding:0 6px}#toast{font-size:12px;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .card input[type=text]{font:inherit;background:#0b0e1f;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:160px}
 #onlineBox{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px}
 #onlineBox .hint{font-size:12px;color:var(--muted)}
@@ -98,7 +101,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <div class="row"><button id="resume" class="hidden">Fortsetzen</button><button id="start">Neues Spiel</button><button id="leave" class="hidden">Online-Spiel verlassen</button></div>
     <div class="help">
       <b>Ziel:</b> Triff das gegnerische Schiff. Planeten lenken die Schüsse durch ihre Schwerkraft ab. Die Anziehung hängt von Größe <i>und</i> Dichte ab: Es gibt drei Dichteklassen – <b style="color:#5be37a">leicht</b> (Gasriesen, Eis), <b style="color:#ffd24a">mittel</b> (erdähnlich, Wüste) und <b style="color:#ff5a4a">schwer</b> (Lava, Mondgestein). Ein kleiner roter Planet kann stärker ablenken als ein großer grüner. Die Sonne zieht besonders stark. Versteckte Schwarze Löcher zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken alles, was ihnen zu nahe kommt.<br>
-      <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Maus/Finger auf dem Spielfeld halten = zielen · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü<br>
+      <b>Steuerung:</b> ← → Winkel · ↑ ↓ Geschwindigkeit · mit Shift fein · Pfeilspitze mit Maus/Finger ziehen = Richtung und Geschwindigkeit · Leertaste = Feuer, während des Flugs = Schuss beenden · N = neue Karte · M = Ton an/aus · F = Fluggeräusch an/aus · C = Chat (online) · Esc = Menü<br>
       <b>Über das Spiel:</b> Eine Hommage an die Gravitations-Artilleriespiele der Amiga-Zeit wie „Gravity Wars“. Galaxy Wars 2026 ist ein eigenständiges Spiel: Grafik, Sound, Code und Spielelemente sind neu entwickelt, es enthält nichts aus dem Original. Komplett mit Claude (Anthropic) programmiert.
     </div>
   </div>
@@ -704,18 +707,18 @@ function draw(){
   S.ships.forEach((sh,i)=>{
     if(sh.dead)return;
     const pl=S.players[i],a=pl.angle*Math.PI/180,active=i===S.turn&&(S.phase==='aim'||S.phase==='ai');
+    const sc=shipScale();
     if(active){
       ctx.strokeStyle=COLORS[i];ctx.globalAlpha=.35+.25*Math.sin(t*4);ctx.lineWidth=1.5*lw;
-      ctx.beginPath();ctx.arc(sh.x,sh.y,SHIP_R+9+2*Math.sin(t*4),0,7);ctx.stroke();ctx.globalAlpha=1;
-      const len=SHIP_R+14+pl.power*1.1,dx=Math.cos(a),dy=-Math.sin(a);
-      ctx.setLineDash([6*lw,6*lw]);ctx.globalAlpha=.7;ctx.beginPath();
-      ctx.moveTo(sh.x+dx*(SHIP_R+6),sh.y+dy*(SHIP_R+6));ctx.lineTo(sh.x+dx*len,sh.y+dy*len);ctx.stroke();
-      ctx.setLineDash([]);ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(sh.x,sh.y,(SHIP_R+9)*sc+2*Math.sin(t*4)*lw,0,7);ctx.stroke();ctx.globalAlpha=1;
+      drawAimArrow(sh,pl,i);
     }
-    ctx.save();ctx.translate(sh.x,sh.y);ctx.rotate(-a);
-    ctx.shadowColor=COLORS[i];ctx.shadowBlur=14;
+    // Schiff mit Mindestgröße auf dem Bildschirm (nur optisch – die Trefferzone bleibt gleich)
+    ctx.save();ctx.translate(sh.x,sh.y);ctx.rotate(-a);ctx.scale(sc,sc);
+    ctx.shadowColor=COLORS[i];ctx.shadowBlur=12*dpr;
     ctx.fillStyle=COLORS[i];ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-11,-10);ctx.lineTo(-5,0);ctx.lineTo(-11,10);ctx.closePath();ctx.fill();
-    ctx.shadowBlur=0;ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(3,0,2.6,0,7);ctx.fill();
+    ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.2*lw/sc;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(3,0,2.6,0,7);ctx.fill();
     ctx.restore();
   });
   if(S.shot){
@@ -780,6 +783,7 @@ function readSettings(){
 }
 function startGame(){
   S.mode=$('mode').value;readSettings();
+  portraitHint();
   S.scores=[0,0];S.starter=0;
   $('menu').classList.add('hidden');$('msg').classList.add('hidden');
   layout();newLevel();
@@ -1043,7 +1047,11 @@ function netGame(d){
   }
 }
 
+function portraitHint(){ // Handy im Hochformat: Spielfeld ist quer, also Tipp geben
+  if(innerWidth<innerHeight&&innerWidth<700)setTimeout(()=>toast('📱 Tipp: Handy quer halten – dann wird alles größer'),600);
+}
 function startOnlineGame(){
+  portraitHint();
   readSettings();S.scores=[0,0];S.starter=0;
   hideWait();$('menu').classList.add('hidden');$('msg').classList.add('hidden');
   layout();newLevel();
@@ -1194,10 +1202,51 @@ try{$('netName').value=localStorage.getItem('galaxyWarsName')||'';}catch(e){}
   }
 })();
 
+/* ---------- Zielpfeil ---------- */
+// Alle Maße in Bildschirmpunkten, damit Pfeil und Schiffe auch auf dem Handy gut sichtbar sind
+const SHIP_MIN_PX=12,ARROW_MIN=22;
+// volle Pfeillänge passt sich der Spielfeldbreite an (Handy kürzer, Monitor länger)
+const arrowSpan=()=>Math.min(150,Math.max(90,W*view.s*.28));
+const shipScale=()=>Math.max(1,SHIP_MIN_PX/(SHIP_R*view.s));
+function arrowStart(){return SHIP_R*view.s*shipScale()+10;}
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16},${(n>>8)&255},${n&255},${a})`;}
+function drawAimArrow(sh,pl,i){
+  const px=1/view.s,a=pl.angle*Math.PI/180,dx=Math.cos(a),dy=-Math.sin(a);
+  const P=d=>[sh.x+dx*d*px,sh.y+dy*d*px];
+  const span=arrowSpan(),start=arrowStart(),full=start+ARROW_MIN+span,len=start+ARROW_MIN+pl.power/100*span,head=16;
+  const [x0,y0]=P(start),[xf,yf]=P(full),[xt,yt]=P(len),[xh,yh]=P(len-head);
+  ctx.save();ctx.lineCap='round';
+  // blasse Schiene = volle Geschwindigkeit
+  ctx.strokeStyle=rgba(COLORS[i],.16);ctx.lineWidth=8*px;
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(xf,yf);ctx.stroke();
+  // Schaft mit Farbverlauf, Länge = Geschwindigkeit
+  const gr=ctx.createLinearGradient(x0,y0,xt,yt);
+  gr.addColorStop(0,rgba(COLORS[i],.25));gr.addColorStop(1,rgba(COLORS[i],.95));
+  ctx.strokeStyle=gr;ctx.lineWidth=5*px;ctx.shadowColor=COLORS[i];ctx.shadowBlur=8*dpr;
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(xh,yh);ctx.stroke();
+  // Pfeilspitze
+  const nx=-dy*9*px,ny=dx*9*px;
+  ctx.fillStyle=COLORS[i];ctx.beginPath();ctx.moveTo(xt,yt);ctx.lineTo(xh+nx,yh+ny);ctx.lineTo(xh-nx,yh-ny);ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;
+  // Winkel und Geschwindigkeit an der Spitze
+  // seitlich neben die Spitze (oberhalb des Pfeils), damit die Zahl nicht auf der Schiene liegt
+  const pnx=-dy,pny=dx,side=dx>1e-6?-1:dx<-1e-6?1:(pnx>0?1:-1),[tx,ty]=P(len-6);
+  const lx=tx+pnx*side*18*px,ly=ty+pny*side*18*px;
+  ctx.font=`600 ${12*px}px ui-monospace,Menlo,Consolas,monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.lineWidth=3*px;ctx.strokeStyle='rgba(5,6,13,.85)';
+  const label=`${pl.angle.toFixed(1)}° · ${pl.power.toFixed(0)}`;
+  ctx.strokeText(label,lx,ly);ctx.fillStyle='rgba(232,236,255,.95)';ctx.fillText(label,lx,ly);
+  ctx.restore();
+}
+
+// Maus/Finger setzt die Pfeilspitze: Richtung UND Geschwindigkeit auf einmal
 function aimAt(e){
   if(!humanAim())return;
-  const wx=(e.clientX-view.ox)/view.s,wy=(e.clientY-view.oy)/view.s,sh=S.ships[S.turn];
-  setAngle(Math.atan2(-(wy-sh.y),wx-sh.x)*180/Math.PI);
+  const sh=S.ships[S.turn],sx=view.ox+sh.x*view.s,sy=view.oy+sh.y*view.s;
+  const dx=e.clientX-sx,dy=e.clientY-sy,d=Math.hypot(dx,dy);
+  if(d<4)return;
+  setAngle(Math.atan2(-dy,dx)*180/Math.PI);
+  setPower((d-arrowStart()-ARROW_MIN)/arrowSpan()*100);
 }
 cv.addEventListener('pointerdown',e=>{S.aiming=true;aimAt(e);});
 addEventListener('pointermove',e=>{if(S.aiming)aimAt(e);});

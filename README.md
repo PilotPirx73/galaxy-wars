@@ -38,7 +38,7 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 | ← / → | Winkel |
 | ↑ / ↓ | Geschwindigkeit |
 | Shift | fein einstellen |
-| Maus auf dem Spielfeld halten | zielen |
+| Pfeilspitze mit Maus/Finger ziehen | Richtung und Geschwindigkeit |
 | Leertaste / Enter | Feuer, während des Flugs: Schuss beenden |
 | N | neue Karte |
 | M | Ton an/aus |
