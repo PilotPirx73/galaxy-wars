@@ -56,6 +56,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 #panel{gap:6px 10px;padding:5px 10px 6px}#pname,#angN,#powN{display:none}#panel input[type=range]{width:min(140px,17vw)}#panel label{font-size:12px;gap:6px}#panel button{padding:5px 10px}#fire{padding:6px 12px}#hud{padding:5px 12px;font-size:12px}#status{font-size:11px}}
 @media (max-height:500px) and (pointer:coarse){ /* Handy quer: Pfeilknöpfe passen mit in die eine Zeile */
 #panel{flex-wrap:nowrap;gap:5px 6px}#panel label{font-size:0;gap:3px;flex:1 1 auto;min-width:0}#panel label::before{font-size:13px;color:var(--muted)}#panel label:nth-of-type(1)::before{content:'∠'}#panel label:nth-of-type(2)::before{content:'v'}#panel input[type=range]{flex:1 1 60px;width:auto;min-width:30px}#panel .nudge{min-width:32px;min-height:32px}#panel button{flex:none;padding:5px 8px}#lastShot{font-size:10px;line-height:12px;width:18ch}}
+@media (max-width:520px) and (pointer:coarse){#panel label{flex:1 1 100%;min-width:0;gap:6px}#panel input[type=range]{flex:1 1 40px;width:auto;min-width:30px}#panel input[type=number]{width:80px}}
 @media (max-width:520px){#hud{font-size:12px;padding:8px 10px}#status{font-size:11px;padding:0 6px}#toast{font-size:12px;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .card input[type=text]{font:inherit;background:#0b0e1f;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:160px}
 #onlineBox{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px}
