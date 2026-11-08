@@ -308,6 +308,16 @@ function newLevel(){
     const r=rnd(70,88),pos=place(r,W/2-260,W/2+260,H/2-200,H/2+200,0,220);
     if(pos)S.planets.push({type:'sun',...pos,r,m:r*r*r*1.5});
   }
+  // Schwarze Löcher: Durchmesser und Gravitation werden unabhängig gewürfelt, auch ein kleines kann stark ziehen.
+  // Radius 8 bis 130, große sind selten. Findet ein großes keinen Platz, wird es etwas kleiner.
+  const addBH=r=>{
+    for(let t=0;t<14;t++,r=Math.max(8,r*.8)){
+      const pos=place(r,260,W-260,0,H,60,200);
+      if(pos){S.planets.push({type:'bh',...pos,r,m:62*62*62*1.7*rnd(.3,1.7),revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});return;}
+    }
+  };
+  const bhR=Array.from({length:S.nBH},()=>8+122*Math.pow(Math.random(),2.5)).sort((a,b)=>b-a);
+  bhR.filter(r=>r>=40).forEach(addBH); // große zuerst, die Planeten verteilen sich dann darum herum
   // große Planeten zuerst, dann füllen die kleinen die Lücken
   const looks=Array.from({length:S.nPlanets},()=>{const r=rnd(22,70);return{r,look:planetLook(r)};}).sort((a,b)=>b.r-a.r);
   for(const {r,look} of looks){
@@ -316,11 +326,7 @@ function newLevel(){
     if(!pos)continue;
     S.planets.push({type:'planet',...pos,r,m:r*r*r*look.dens,...look});
   }
-  for(let i=0;i<S.nBH;i++){
-    // Durchmesser und Gravitation werden unabhängig voneinander gewürfelt: Auch ein kleines Loch kann stark ziehen
-    const r=rnd(8,26),pos=place(r,260,W-260,0,H,60,200);
-    if(pos)S.planets.push({type:'bh',...pos,r,m:62*62*62*1.7*rnd(.3,1.7),revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});
-  }
+  bhR.filter(r=>r<40).forEach(addBH);
   S.stars=Array.from({length:280},()=>({x:Math.random(),y:Math.random(),r:rnd(.3,1.4),a:rnd(.25,1)}));
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
   S.players[0].angle=0;S.players[1].angle=180;
@@ -391,16 +397,17 @@ function drawSun(c,p,t,lw){
 function drawBH(c,p,t,lw){
   if(p.reveal<=0)return;
   c.save();c.globalAlpha=p.reveal;c.translate(p.x,p.y);
-  let g=c.createRadialGradient(0,0,p.r,0,0,p.r*7);
+  const halo=p.r+Math.min(p.r*6,150),disk=p.r+Math.min(p.r*3.2,85),ex=disk-p.r*1.2;
+  let g=c.createRadialGradient(0,0,p.r,0,0,halo);
   g.addColorStop(0,'rgba(150,100,255,0)');g.addColorStop(.18,'rgba(150,100,255,.2)');g.addColorStop(1,'rgba(150,100,255,0)');
-  c.fillStyle=g;c.beginPath();c.arc(0,0,p.r*7,0,7);c.fill();
+  c.fillStyle=g;c.beginPath();c.arc(0,0,halo,0,7);c.fill();
   c.save();c.rotate(p.tilt);c.scale(1,.32);
-  g=c.createRadialGradient(0,0,p.r*1.2,0,0,p.r*4.2);
+  g=c.createRadialGradient(0,0,p.r*1.2,0,0,disk);
   g.addColorStop(0,'rgba(255,230,170,.95)');g.addColorStop(.35,'rgba(255,140,60,.65)');g.addColorStop(1,'rgba(170,40,130,0)');
-  c.fillStyle=g;c.beginPath();c.arc(0,0,p.r*4.2,0,7);c.fill();
+  c.fillStyle=g;c.beginPath();c.arc(0,0,disk,0,7);c.fill();
   c.lineWidth=1.2*lw/.32;
   for(let i=0;i<6;i++){
-    const r=p.r*(1.6+i*.42),a=t*(2.2-i*.25)+i*1.7;
+    const r=p.r*1.2+ex*(.13+i*.14),a=t*(2.2-i*.25)+i*1.7;
     c.strokeStyle=`rgba(255,240,210,${.35-i*.04})`;c.beginPath();c.arc(0,0,r,a,a+1.4);c.stroke();
   }
   c.restore();
@@ -701,10 +708,10 @@ function explode(x,y,c,n,big){
 }
 function implode(p){
   for(let i=0;i<40;i++){
-    const a=rnd(0,7),d=rnd(40,90),l=rnd(.5,.9),sp=d/l;
+    const a=rnd(0,7),d=p.r+rnd(26,76),l=rnd(.5,.9),sp=d/l;
     S.particles.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,vx:-Math.cos(a)*sp+Math.sin(a)*sp*.6,vy:-Math.sin(a)*sp-Math.cos(a)*sp*.6,life:l,max:l,c:Math.random()<.5?'#c9a4ff':'#ffd9a0',r:rnd(1,2.2),noDrag:true});
   }
-  S.particles.push({ring:true,implode:true,x:p.x,y:p.y,life:.7,max:.7,c:'#b48cff',R:80});
+  S.particles.push({ring:true,implode:true,x:p.x,y:p.y,life:.7,max:.7,c:'#b48cff',R:Math.max(80,p.r*1.7)});
 }
 
 /* ---------- Computer ---------- */
@@ -777,7 +784,7 @@ function update(dt){
       for(const b of S.planets){
         if(b.type!=='bh'||b.revealed)continue;
         const bx=b.x-S.shot.x,by=b.y-S.shot.y;
-        if(bx*bx+by*by<220*220){b.revealed=true;snd.reveal();toast('Achtung: ein Schwarzes Loch!');}
+        if(bx*bx+by*by<(b.r+206)*(b.r+206)){b.revealed=true;snd.reveal();toast('Achtung: ein Schwarzes Loch!');}
       }
       if(res){resolve(res);break;}
     }
