@@ -147,7 +147,7 @@ const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5
 const COLORS=['#4fd1ff','#ff6b8b'];
 // Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
 const SHIP_TYPES=[
-  ['pfeil','Pfeil'],['kreuzer','Achsenkreuzer'],['rakete','Retro-Rakete'],
+  ['pfeil','Pfeil'],['kreuzer','Achsenkreuzer'],['graben','Grabenfrachter'],['rakete','Retro-Rakete'],
   ['frachter','Frachter'],['delta','Delta-Jäger'],['kugel','Kugelsonde'],
 ];
 const SHIP_PATHS={
@@ -1379,6 +1379,59 @@ function drawShipShape(c,type,col,u,blur){
       c.strokeStyle='rgba(40,50,62,.7)';c.lineWidth=.6;c.beginPath();c.ellipse(18.2,0,1.8,3.6,0,0,7);c.stroke();
       c.fillStyle='#e0b23a';c.beginPath();c.moveTo(11.2,-2.6);c.lineTo(12.6,-1.2);c.lineTo(12.6,1.2);c.lineTo(11.2,2.6);c.lineTo(9.8,1.2);c.lineTo(9.8,-1.2);c.closePath();c.fill();
       outline(B);
+      c.restore();
+      break;}
+    case 'graben':{ // Modell des Spielers: flacher Rumpf, zwei lange Wände mit Graben, Triebwerksblöcke an den Seiten
+      c.save();c.scale(.82,.82);u/=.82;
+      const metal=(y0,y1)=>lg(0,y0,0,y1,[[0,'#e6edf3'],[.5,'#a3b0bd'],[1,'#566372']]);
+      const R=new Path2D('M16 -7 L16 7 L12 7 L11 9.5 C7 12.5 1 13.5 -5 13.5 C-12 13.5 -15.5 10 -15.5 6 L-15.5 -6 C-15.5 -10 -12 -13.5 -5 -13.5 C1 -13.5 7 -12.5 11 -9.5 L12 -7 Z');
+      // je ein Block aus drei parallelen Triebwerken an den Seiten
+      for(const sd of[-1,1]){
+        c.save();c.translate(-6,sd*10.5);c.rotate(sd*2.25);
+        for(const off of[-3.9,0,3.9]){
+          const B=new Path2D();B.roundRect(0,off-1.75,off?7.2:8.4,3.5,.7);
+          hull(B,metal(off-1.75,off+1.75));
+          c.fillStyle='#34404c';c.fillRect((off?7.2:8.4)-1.2,off-1.3,1.2,2.6);
+          c.fillStyle='#7fd0ff';c.fillRect((off?7.2:8.4)-.4,off-1,.4,2);
+          c.fillStyle='rgba(50,60,72,.6)';c.fillRect(3.2,off-1.75,.55,3.5);
+          outline(B);
+        }
+        c.restore();
+      }
+      flame(-21,-6.5,2.7,'#7fd0ff');flame(-21,6.5,2.7,'#7fd0ff');
+      hull(R,rg(-2,0,2,17,[[0,'#c6d1dc'],[.65,'#94a3b2'],[1,'#5b6979']]));
+      c.save();c.clip(R);c.strokeStyle='rgba(45,56,68,.45)';c.lineWidth=.45;
+      for(const sd of[-1,1]){
+        c.beginPath();c.moveTo(2,sd*7);c.lineTo(2,sd*15);c.moveTo(8.5,sd*7);c.lineTo(8.5,sd*15);c.moveTo(-7,sd*7);c.lineTo(-7,sd*15);c.stroke();
+      }
+      c.restore();
+      // Lüfterräder und Rundluke auf dem Rumpf
+      for(const sd of[-1,1]){
+        const fx=-2,fy=sd*9.9;
+        dot(fx,fy,3.1,'#4c5866');dot(fx,fy,2.5,rg(fx,fy,.2,2.5,[[0,'#7fd6ff'],[1,'#17506f']]));
+        c.strokeStyle='#dce6ee';c.lineWidth=.45;
+        for(let k=0;k<6;k++){const an=k/6*Math.PI*2;c.beginPath();c.moveTo(fx,fy);c.lineTo(fx+Math.cos(an)*2.4,fy+Math.sin(an)*2.4);c.stroke();}
+        dot(5.3,sd*9.7,1.7,'#6b7887');dot(5.3,sd*9.7,1,'#2d3640');
+      }
+      // Graben zwischen den Wänden mit Rohren und Platten
+      c.fillStyle=lg(0,-5.5,0,5.5,[[0,'#27313c'],[.5,'#46525f'],[1,'#222b35']]);c.fillRect(-20,-5.5,36,11);
+      c.strokeStyle='rgba(165,180,195,.4)';c.lineWidth=.4;
+      for(let x=-18;x<15;x+=3.2){c.beginPath();c.moveTo(x,-5.5);c.lineTo(x,5.5);c.stroke();}
+      for(const y of[-2.6,2.6]){c.beginPath();c.moveTo(-20,y);c.lineTo(16,y);c.stroke();}
+      for(const[x,y,l]of[[-14,-3.2,8],[-3,2.8,8],[4,-2.8,6]]){
+        c.fillStyle=lg(0,y-1.2,0,y+1.2,[[0,'#f0f4f8'],[.5,'#a6b3c0'],[1,'#4c5866']]);c.beginPath();c.roundRect(x,y-1.2,l,2.4,1.1);c.fill();
+        c.fillStyle='#d4682e';c.fillRect(x+l*.68,y-1.2,.9,2.4);
+      }
+      dot(-7,1.5,1.6,'#d7dfe7');dot(-7,1.5,.8,'#35404b');
+      // die beiden langen Wände
+      const Wa=new Path2D();Wa.roundRect(-20,-7.6,37,2.4,.5);Wa.roundRect(-20,5.2,37,2.4,.5);
+      hull(Wa,lg(0,-7.6,0,7.6,[[0,'#c9d4de'],[.5,'#8f9dac'],[1,'#c9d4de']]));
+      c.strokeStyle='rgba(50,60,72,.55)';c.lineWidth=.35;
+      for(let x=-17;x<16;x+=4.5){for(const y of[-7.6,5.2]){c.beginPath();c.moveTo(x,y);c.lineTo(x,y+2.4);c.stroke();}}
+      // Bug: Öffnung und zwei runde Lichter an den Ecken
+      c.fillStyle='#161d25';c.beginPath();c.roundRect(14.4,-3.5,1.5,7,.5);c.fill();
+      for(const sd of[-1,1]){c.save();c.shadowColor='#ffd27a';c.shadowBlur=Math.max(3,blur*.5);dot(15.6,sd*6.4,1.5,'#ffcf70');c.restore();dot(15.6,sd*6.4,.65,'#fff8e0');}
+      outline(R);outline(Wa);
       c.restore();
       break;}
     case 'rakete':{
