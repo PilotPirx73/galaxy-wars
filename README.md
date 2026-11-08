@@ -33,11 +33,11 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 - **Planeten:** zufällig verteilt. Größere und dichtere ziehen stärker. In der Browser-Version wird jede Oberfläche prozedural berechnet und von der Sonne beleuchtet: erdähnliche Planeten mit Ozeanen, Kontinenten, Polkappen und Wolken, Gasriesen mit Wolkenbändern und Sturmwirbel (geringere Dichte), dazu Wüsten-, Eis-, Lava- und Mondwelten. Manche haben **Ringe**, durch die man hindurchschießen kann.
 - **Drei Dichteklassen:** Die Anziehung hängt von Größe *und* Dichte ab (Masse = Radius³ × Dichte). 🟢 leicht (Gasriesen, Eis, Dichte 0,5), 🟡 mittel (erdähnlich, Wüste, 1,0), 🔴 schwer (Lava, Mondgestein, 1,9). Ein farbiger Kreis zeigt die Klasse an und lässt sich im Menü ausschalten.
 - **Sonne** in der Mitte, mit besonders starker Schwerkraft.
-- **Schwarze Löcher:** klein, aber sehr stark. Wahlweise versteckt: Sie zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken, was ihnen zu nahe kommt.
+- **Schwarze Löcher:** jedes anders groß und anders stark, auch ein kleines kann gewaltig ziehen. Wahlweise versteckt: Sie zeigen sich erst, wenn ein Schuss nahe vorbeifliegt, und verschlucken, was ihnen zu nahe kommt.
 - **Computer-Gegner** in drei Stufen und mit drei Persönlichkeiten: *Ausgewogen*, *Vorsichtig* (meidet Himmelskörper) und *Trickser* (liebt Schleuderbahnen). Er rechnet Hunderte Probeschüsse im Kopf durch, verzieht den ersten Schuss absichtlich und schießt sich dann systematisch ein. Versteckte Schwarze Löcher kennt er auch nicht.
 - **Wie im Original:** Schüsse haben kein Zeitlimit und lassen sich nicht abbrechen – sie fliegen, bis sie etwas treffen oder das Sonnensystem verlassen. Auch der eigene Querschläger kann einen also noch erwischen.
 - **Alte Flugbahnen** bleiben gestrichelt sichtbar, damit man nachkorrigieren kann.
-- **Sieben Raumschiff-Typen** (eigene Entwürfe): Pfeil, Achsenkreuzer, Grabenfrachter, Retro-Rakete, Frachter, Delta-Jäger und Kugelsonde – online sieht der Mitspieler dein Schiff.
+- **Sieben Raumschiff-Typen** (eigene Entwürfe): Pfeil, Achsenkreuzer, Bastion, Retro-Rakete, Frachter, Delta-Jäger und Kugelsonde – online sieht der Mitspieler dein Schiff.
 - **Zoom:** Mausrad, zwei Finger oder − / + ; „Alle Bahnen zeigen“ (Taste Z) zoomt so weit heraus, dass auch weit ausholende Flugbahnen ins Bild passen.
 - **Sound:** Alle Klänge werden im Programm erzeugt. Das Fluggeräusch lässt sich separat abschalten.
 
