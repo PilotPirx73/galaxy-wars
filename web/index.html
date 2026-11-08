@@ -146,7 +146,7 @@ const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5
 const COLORS=['#4fd1ff','#ff6b8b'];
 // Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
 const SHIP_TYPES=[
-  ['pfeil','Pfeil'],['untertasse','Untertasse'],['rakete','Retro-Rakete'],
+  ['pfeil','Pfeil'],['kreuzer','Achsenkreuzer'],['rakete','Retro-Rakete'],
   ['frachter','Frachter'],['delta','Delta-Jäger'],['kugel','Kugelsonde'],
 ];
 const SHIP_PATHS={
@@ -1331,17 +1331,54 @@ function drawShipShape(c,type,col,u,blur){
   const line=(pts,w,k)=>{c.strokeStyle=k;c.lineWidth=w;c.lineCap='round';c.beginPath();c.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)c.lineTo(pts[i],pts[i+1]);c.stroke();};
   c.lineJoin='round';
   switch(type){
-    case 'untertasse':{
-      const P=new Path2D();P.ellipse(0,1,17,7,0,0,Math.PI*2);
-      hull(P,lg(0,-6,0,8,[[0,'#f7f9fc'],[.45,'#aeb8c6'],[.8,'#5c6676'],[1,'#323944']]));
-      c.strokeStyle='rgba(40,46,56,.7)';c.lineWidth=.8;c.beginPath();c.ellipse(0,1.6,12.5,4.3,0,0,7);c.stroke();
-      const lights=['#ff4d5a','#ffd84d','#5dff8f','#ffd84d'];
-      for(let k=0;k<10;k++){const a=k/10*Math.PI*2,x=Math.cos(a)*14.5,y=1+Math.sin(a)*5.8;
-        c.save();c.shadowColor=lights[k%4];c.shadowBlur=Math.max(3,blur*.5);dot(x,y,1.05,lights[k%4]);c.restore();}
-      c.fillStyle=glass(1.5,-3,6.5);c.beginPath();c.ellipse(1.5,-.4,6.8,5.6,0,Math.PI,Math.PI*2);c.closePath();c.fill();
-      c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.ellipse(-.5,-3.6,2.2,1,-.3,0,7);c.fill();
-      c.save();c.shadowColor='#ffffff';c.shadowBlur=Math.max(3,blur*.6);dot(16.6,1,1.5,'#ffffff');c.restore(); // Scheinwerfer = Flugrichtung
-      outline(P);
+    case 'kreuzer':{ // Entwurf des Spielers: Cockpitkugel mit Flügel, Achse mit Knoten, Spindeln mit Kanonen
+      c.save();c.scale(.82,.82);u/=.82;
+      const steel=(y0,y1)=>lg(0,y0,0,y1,[[0,'#eef3f8'],[.5,'#9aa6b5'],[1,'#3d4654']]);
+      const pod=(x0,x1,y,h,cone)=>{ // Spindel: Zylinder mit Kanone vorn und Düse hinten
+        const P=new Path2D();P.roundRect(x0,y-h,x1-x0,2*h,h*.6);
+        flame(x0-1.2,y,h*1.9,'#7fd0ff');
+        c.fillStyle='#3a414c';c.fillRect(x0-1.6,y-h*.8,2,h*1.6);
+        hull(P,steel(y-h,y+h));
+        c.fillStyle=lg(0,y-h,0,y+h,[[0,'#ffd08a'],[.5,'#e07a1f'],[1,'#7a3a08']]);
+        c.beginPath();c.moveTo(x1-.3,y-h*.85);c.quadraticCurveTo(x1+cone,y-h*.5,x1+cone,y);c.quadraticCurveTo(x1+cone,y+h*.5,x1-.3,y+h*.85);c.closePath();c.fill();
+        c.fillStyle='rgba(30,36,46,.55)';c.fillRect(x0+(x1-x0)*.55,y-h,.8,2*h);
+        outline(P);
+      };
+      // Querträger (X und Senkrechte) zwischen den großen Spindeln
+      line([-3,-14,-3,14],2.6,'#5d6878');line([-3,-14,-3,14],1,'#aab5c3');
+      line([2.5,-13,-7,13],1.6,'#6c7787');line([-7,-13,2.5,13],1.6,'#6c7787');
+      // hintere Achse mit sekundären Knoten und Leitwerken
+      line([-2,0,-18,0],2.6,'#56606f');line([-2,0,-18,0],1,'#b4bfcc');
+      for(const x of[-8.5,-13]){
+        c.fillStyle='#c94a3a';c.beginPath();c.moveTo(x-1.6,-3.2);c.lineTo(x+1.6,-3.2);c.lineTo(x,0);c.closePath();c.moveTo(x-1.6,3.2);c.lineTo(x+1.6,3.2);c.lineTo(x,0);c.closePath();c.fill();
+        dot(x,0,1.5,'#d7dee7');dot(x,0,.7,'#39424f');}
+      // Heckkugel mit Radarpaneel
+      c.fillStyle='#8892a0';c.fillRect(-19,-6.6,3.2,1.4);line([-17.4,-5.4,-17.4,-3],.8,'#8892a0');
+      const T=new Path2D();T.arc(-19.5,0,3.4,0,7);
+      hull(T,rg(-20.5,-1.2,.4,3.8,[[0,'#fff1b8'],[.5,'#d9a32e'],[1,'#6b4a0c']]));
+      c.strokeStyle='rgba(60,40,8,.8)';c.lineWidth=.6;c.beginPath();c.arc(-19.5,0,1.7,0,7);c.stroke();
+      outline(T);
+      // Spindeln: zwei große außen, zwei kleine innen
+      pod(-9,1,-14,2.3,3.2);pod(-9,1,14,2.3,3.2);
+      pod(-2,4.5,-8,1.5,2.2);pod(-2,4.5,8,1.5,2.2);
+      // Flügel hinter der Cockpitkugel
+      const Wg=new Path2D();Wg.moveTo(3.5,-10.5);Wg.ellipse(3.5,0,10,10.5,0,-Math.PI/2,Math.PI/2);Wg.closePath();
+      hull(Wg,lg(0,-10.5,0,10.5,[[0,'#3fa7c9'],[.5,'#1d5f86'],[1,'#0c2c45']]));
+      c.strokeStyle='rgba(180,230,255,.35)';c.lineWidth=.6;c.beginPath();c.moveTo(4.5,-8);c.lineTo(4.5,8);c.stroke();
+      outline(Wg);
+      // Verjüngung zum primären Achsenknoten
+      const K=new Path2D();K.moveTo(6.5,-5.2);K.lineTo(0,-2);K.lineTo(0,2);K.lineTo(6.5,5.2);K.closePath();
+      c.fillStyle=steel(-5.2,5.2);c.fill(K);
+      const Hx=new Path2D();for(let k=0;k<6;k++){const a=k/6*Math.PI*2+Math.PI/6;Hx[k?'lineTo':'moveTo'](-1+Math.cos(a)*3,Math.sin(a)*3);}Hx.closePath();
+      c.fillStyle=steel(-3,3);c.fill(Hx);c.strokeStyle='#39424f';c.lineWidth=.6;c.stroke(Hx);dot(-1,0,1.2,'#2b323c');
+      // Cockpitkugel mit Radarpaneel und Bugring
+      const B=new Path2D();B.ellipse(12,0,7.5,6.6,0,0,7);
+      hull(B,rg(10,-2.5,.5,8,[[0,'#ffffff'],[.45,'#c9d2dd'],[1,'#56606f']]));
+      c.fillStyle=glass(18,0,2.6);c.beginPath();c.ellipse(18.2,0,1.8,3.6,0,0,7);c.fill();
+      c.strokeStyle='rgba(40,50,62,.7)';c.lineWidth=.6;c.beginPath();c.ellipse(18.2,0,1.8,3.6,0,0,7);c.stroke();
+      c.fillStyle='#e0b23a';c.beginPath();c.moveTo(11.2,-2.6);c.lineTo(12.6,-1.2);c.lineTo(12.6,1.2);c.lineTo(11.2,2.6);c.lineTo(9.8,1.2);c.lineTo(9.8,-1.2);c.closePath();c.fill();
+      outline(B);
+      c.restore();
       break;}
     case 'rakete':{
       const P=SHIP_PATHS.rakete,F=SHIP_PATHS.raketeFins;
