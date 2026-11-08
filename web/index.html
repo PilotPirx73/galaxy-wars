@@ -150,7 +150,7 @@ const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5
 const COLORS=['#4fd1ff','#ff6b8b'];
 // Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
 const SHIP_TYPES=[
-  ['pfeil','Pfeil'],['kreuzer','Achsenkreuzer'],['bastion','Bastion'],['rakete','Retro-Rakete'],
+  ['pfeil','Pfeil'],['kreuzer','Achsenkreuzer'],['ring','Ringfrachter'],['rakete','Retro-Rakete'],
   ['frachter','Frachter'],['delta','Delta-Jäger'],['kugel','Kugelsonde'],
 ];
 const SHIP_PATHS={
@@ -1400,80 +1400,38 @@ function drawShipShape(c,type,col,u,blur){
       outline(B);
       c.restore();
       break;}
-    case 'bastion':{ // Modell des Spielers, von oben: Rundrumpf, zwei hohe Wände mit Graben, Bugblock, seitliche Triebwerksblöcke
-      c.save();c.scale(.78,.78);u/=.78;
-      const metal=(y0,y1)=>lg(0,y0,0,y1,[[0,'#e4ebf1'],[.5,'#aab7c4'],[1,'#5d6b7a']]);
-      const disc=new Path2D();disc.arc(-2,0,14,0,Math.PI*2);
-      const walls=new Path2D();
-      for(const sd of[-1,1]){walls.moveTo(12,sd*8.5);walls.lineTo(-17,sd*8.5);walls.lineTo(-22.5,sd*7.3);walls.lineTo(-17,sd*6);walls.lineTo(12,sd*6);walls.closePath();}
-      const bow=new Path2D();bow.roundRect(10.5,-9.8,7.2,19.6,.9);
-      const pods=[];
-      for(const sd of[-1,1])for(const[x,y1]of[[-9.7,18.2],[-5.8,19.6],[-1.9,18.2]]){
-        const P=new Path2D();P.moveTo(x-1.8,sd*10);P.lineTo(x-1.8,sd*(y1-1.1));P.lineTo(x-1,sd*y1);P.lineTo(x+1,sd*y1);P.lineTo(x+1.8,sd*(y1-1.1));P.lineTo(x+1.8,sd*10);P.closePath();
-        pods.push({P,x,sd,y1});
-      }
-      flame(-23,-7.3,2.3,'#7fd0ff');flame(-23,7.3,2.3,'#7fd0ff');
-      // erst nur den Gesamtumriss in Spielerfarbe, die Füllungen verdecken dann alle inneren Linien
+    case 'ring':{ // Schwerer Frachter: Kupferring um einen Kern, dazwischen Tanks, vorn Kanzel, hinten Haupttriebwerk
+      c.save();c.scale(.82,.82);u/=.82;
+      const outer=new Path2D();outer.arc(0,0,15,0,Math.PI*2);
+      const ring=new Path2D();ring.arc(0,0,15,0,Math.PI*2);ring.arc(0,0,10.6,0,Math.PI*2,true);
+      const nozzle=new Path2D();nozzle.moveTo(-14,-3.2);nozzle.lineTo(-20,-4.6);nozzle.lineTo(-20,4.6);nozzle.lineTo(-14,3.2);nozzle.closePath();
+      const canopy=new Path2D();canopy.ellipse(16,0,5,4,0,0,Math.PI*2);
+      flame(-22.5,0,6.5);
+      // Umriss in Spielerfarbe: die Füllungen verdecken die inneren Linien
       c.save();c.strokeStyle=col;c.lineWidth=3.6*u;c.lineJoin='round';c.shadowColor=col;c.shadowBlur=blur;
-      for(const q of[...pods.map(o=>o.P),disc,walls,bow])c.stroke(q);
-      c.restore();
-      // Triebwerksblöcke
-      for(const{P,x,sd,y1}of pods){
-        c.fillStyle=lg(x-1.8,0,x+1.8,0,[[0,'#dfe7ee'],[.55,'#a4b1be'],[1,'#566474']]);c.fill(P);
-        c.fillStyle='#2f3944';c.fillRect(x-1,sd>0?y1-1.5:-y1+.1,2,1.4);
-        c.strokeStyle='rgba(44,54,66,.7)';c.lineWidth=.4;
-        for(const y of[13.4,15.6]){c.beginPath();c.moveTo(x-1.8,sd*y);c.lineTo(x+1.8,sd*y);c.stroke();}
-        c.fillStyle='rgba(44,54,66,.55)';c.fillRect(x-.8,sd>0?13.9:-15.1,1.6,1.2);
-      }
-      // Rundrumpf mit Randsegmenten
-      c.fillStyle=rg(-2,0,3,14.5,[[0,'#ccd6e0'],[.7,'#a5b3c1'],[1,'#74838f']]);c.fill(disc);
-      c.save();c.clip(disc);
-      c.strokeStyle='rgba(40,50,62,.6)';c.lineWidth=.45;
-      c.beginPath();c.arc(-2,0,12.2,0,7);c.stroke();
-      for(let k=0;k<36;k++){const an=k/36*Math.PI*2;c.beginPath();c.moveTo(-2+Math.cos(an)*12.2,Math.sin(an)*12.2);c.lineTo(-2+Math.cos(an)*14,Math.sin(an)*14);c.stroke();}
-      c.fillStyle='rgba(16,22,30,.42)';c.fillRect(-20,-11,34,2.6);c.fillRect(-20,8.4,34,2.6); // Schatten der hohen Wände
-      c.restore();
+      for(const q of[outer,nozzle,canopy])c.stroke(q);c.restore();
+      c.fillStyle='#10151d';c.fill(outer);
+      // Speichen und Mittelachse
+      for(const an of[.785,2.356,3.927,5.498]){c.save();c.rotate(an);c.fillStyle=lg(0,-1.5,0,1.5,[[0,'#d4dbe2'],[1,'#56616e']]);c.fillRect(4,-1.5,8,3);c.restore();}
+      c.fillStyle=lg(0,-2.6,0,2.6,[[0,'#d4dbe2'],[1,'#56616e']]);c.fillRect(-12,-2.6,24,5.2);
+      // Tanks links und rechts vom Kern
       for(const sd of[-1,1]){
-        // Lüfterrad
-        const fx=-6.2,fy=sd*10.3;dot(fx,fy,2.7,'#46525f');dot(fx,fy,2.2,rg(fx,fy,.2,2.2,[[0,'#8bdcff'],[1,'#1a5878']]));
-        c.strokeStyle='#e1eaf1';c.lineWidth=.42;
-        for(let k=0;k<8;k++){const an=k/8*Math.PI*2+.3;c.beginPath();c.moveTo(fx,fy);c.lineTo(fx+Math.cos(an)*2.1,fy+Math.sin(an)*2.1);c.stroke();}
-        dot(fx,fy,.6,'#e1eaf1');
-        // gerippte Schüssel und Rohrstutzen
-        const gx=1.2,gy=sd*10.4;dot(gx,gy,2.2,'#7f8d9b');dot(gx,gy,1.6,'#39444f');
-        c.strokeStyle='rgba(205,216,226,.8)';c.lineWidth=.3;for(const dy of[-.9,-.3,.3,.9]){c.beginPath();c.moveTo(gx-1.4,gy+dy);c.lineTo(gx+1.4,gy+dy);c.stroke();}
-        c.fillStyle=metal(sd*9.4-1,sd*9.4+1);c.beginPath();c.roundRect(5,sd*9.6-1,4,2,.8);c.fill();
-        dot(-11.4,sd*7+sd*2.8,1.1,'#55626f');
+        c.fillStyle=lg(-3.4,0,3.4,0,[[0,'#7ff0c8'],[.5,'#22a884'],[1,'#0c5a4a']]);c.beginPath();c.roundRect(-3.4,sd*5-2.6+sd*2,6.8,5.2,2.2);c.fill();
+        c.fillStyle='rgba(8,40,34,.55)';c.fillRect(-.35,sd*5-2.6+sd*2,.7,5.2);
       }
-      // Graben mit Rohren, Platten und Kuppeln
-      c.fillStyle=lg(0,-6,0,6,[[0,'#1d262f'],[.18,'#46535f'],[.82,'#46535f'],[1,'#1d262f']]);c.fillRect(-20.5,-6,31.5,12);
-      c.strokeStyle='rgba(176,190,204,.5)';c.lineWidth=.38;
-      for(let x=-6.5;x<5;x+=2.3){c.beginPath();c.moveTo(x,-4.4);c.lineTo(x,4.4);c.stroke();}
-      for(let y=-4.4;y<5;y+=2.2){c.beginPath();c.moveTo(-6.5,y);c.lineTo(4.6,y);c.stroke();}
-      const pipe=(x,y,l,h)=>{
-        c.fillStyle=lg(0,y-h,0,y+h,[[0,'#f2f6f9'],[.5,'#a9b6c3'],[1,'#47535f']]);c.beginPath();c.roundRect(x,y-h,l,2*h,h*.55);c.fill();
-        c.fillStyle='rgba(45,55,66,.55)';c.fillRect(x+l*.35,y-h,.5,2*h);c.fillRect(x+l*.68,y-h,.5,2*h);
-      };
-      pipe(-20,-3,12,2.1);pipe(-20,2.8,8.5,1.8);pipe(-13,.2,5.5,1.1);
-      c.fillStyle='#d4682e';c.fillRect(-11.5,-5.1,.9,4.2);
-      for(const y of[-3,3]){dot(7.7,y,2.2,'#55626f');dot(7.3,y-.35,1.75,rg(6.8,y-.9,.15,2,[[0,'#f6fafc'],[1,'#7f8d9b']]));}
-      // die beiden Wände
-      c.fillStyle=lg(0,-8.5,0,8.5,[[0,'#f4f8fb'],[.13,'#aab7c4'],[.87,'#aab7c4'],[1,'#f4f8fb']]);c.fill(walls);
-      c.strokeStyle='rgba(44,54,66,.62)';c.lineWidth=.36;
-      for(const sd of[-1,1]){
-        for(let x=-16;x<12;x+=4.1){c.beginPath();c.moveTo(x,sd*6);c.lineTo(x,sd*8.5);c.stroke();}
-        c.fillStyle='rgba(44,54,66,.5)';for(const x of[-13,-4.5,3.5])c.fillRect(x,sd*7.25-.55,2.4,1.1);
-      }
-      // Bugblock mit Öffnung und runden Scheinwerfern an den Ecken
-      c.fillStyle=lg(0,-9.8,0,9.8,[[0,'#e8eff4'],[.5,'#a2afbc'],[1,'#5d6b7a']]);c.fill(bow);
-      c.fillStyle='#10161d';c.beginPath();c.roundRect(13.2,-4.5,4.5,9,.7);c.fill();
-      c.fillStyle='#5a6875';c.fillRect(11,-4.5,1.2,9);
-      for(const sd of[-1,1]){
-        c.fillStyle='rgba(44,54,66,.55)';c.fillRect(11.4,sd*7-2.4,.45,4.8);
-        dot(14.8,sd*7,2.2,'#4c5966');
-        c.save();c.shadowColor='#ffd27a';c.shadowBlur=Math.max(3,blur*.5);dot(14.8,sd*7,1.45,'#ffcf70');c.restore();
-        dot(14.8,sd*7,.6,'#fff8e0');
-      }
+      // Kupferring mit Segmenten
+      c.fillStyle=rg(-4,-5,4,18,[[0,'#ffd6a0'],[.55,'#c5763a'],[1,'#5c2d14']]);c.fill(ring,'evenodd');
+      c.strokeStyle='rgba(50,22,8,.7)';c.lineWidth=.5;
+      for(let k=0;k<16;k++){const an=(k+.5)/16*Math.PI*2;c.beginPath();c.moveTo(Math.cos(an)*10.6,Math.sin(an)*10.6);c.lineTo(Math.cos(an)*15,Math.sin(an)*15);c.stroke();}
+      c.beginPath();c.arc(0,0,12.8,0,7);c.stroke();
+      // Kern mit Kuppel
+      dot(0,0,5.6,'#39424f');dot(0,0,4.7,rg(-1.5,-1.7,.3,5,[[0,'#ffe9a8'],[.5,'#d9a32e'],[1,'#6b4a0c']]));
+      dot(-.8,-.9,1.2,'rgba(255,255,255,.65)');
+      // Positionslichter, Düse und Kanzel
+      c.save();c.shadowBlur=Math.max(3,blur*.5);c.shadowColor='#ff4d5a';dot(0,-12.8,1.2,'#ff4d5a');c.shadowColor='#5dff8f';dot(0,12.8,1.2,'#5dff8f');c.restore();
+      c.fillStyle=lg(0,-4.6,0,4.6,[[0,'#8d97a5'],[.5,'#4b5563'],[1,'#262d37']]);c.fill(nozzle);
+      c.fillStyle=glass(16,0,5);c.fill(canopy);
+      c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.ellipse(15,-1.7,1.7,.8,-.2,0,7);c.fill();
       c.restore();
       break;}
     case 'rakete':{
