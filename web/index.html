@@ -111,6 +111,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label>Planeten <span><input type="range" id="np" min="1" max="10" value="6"> <b id="npv">6</b></span></label>
     <label>Sonne in der Mitte <input type="checkbox" id="sun" checked></label>
     <label>Schwarze Löcher <span><input type="range" id="bh" min="0" max="10" value="1"> <b id="bhv">1</b></span></label>
+    <label>Selbstzerstörung der Rakete nach <select id="maxFlight"><option value="30">30 s</option><option value="60">1 min</option><option value="120">2 min</option><option value="180" selected>3 min</option><option value="300">5 min</option><option value="600">10 min</option></select></label>
     <label>Schwarze Löcher versteckt <input type="checkbox" id="bhHidden" checked></label>
     <label>Fluggeräusch <input type="checkbox" id="flySound" checked></label>
     <label>Alte Flugbahnen zeigen <input type="checkbox" id="trails" checked></label>
@@ -142,7 +143,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 
 <script>
 'use strict';
-const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5.2,MAX_T=30,OUT_R=W*3,MAX_FLIGHT=300; // Systemgrenze: 3 Feldbreiten vom Zentrum; Notbremse nur gegen ewige Umlaufbahnen
+const W=1600,H=1000,G=25,SHIP_R=13,SHOT_R=3,DT=1/240,SIM_SPEED=1.6,V_PER_POWER=5.2,MAX_T=30,OUT_R=W*3; // Systemgrenze: 3 Feldbreiten vom Zentrum
 const COLORS=['#4fd1ff','#ff6b8b'];
 // Raumschiff-Typen (eigene Entwürfe), gezeichnet in drawShipShape()
 const SHIP_TYPES=[
@@ -159,7 +160,7 @@ const cv=$('c'),ctx=cv.getContext('2d');
 const bg=document.createElement('canvas');
 let dpr=1,view={s:1,ox:0,oy:0},last=performance.now(),toastTimer=0;
 
-const S={shipTypes:['pfeil','pfeil'],mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,flySound:true,scores:[0,0],turn:0,starter:0,
+const S={shipTypes:['pfeil','pfeil'],mode:'pvp',aiLvl:'mittel',aiType:'ausgewogen',nPlanets:6,keepTrails:true,showDens:true,sun:true,nBH:1,bhHidden:true,maxFlight:180,flySound:true,scores:[0,0],turn:0,starter:0,
   players:[{angle:0,power:55,trails:[]},{angle:180,power:55,trails:[]}],
   ships:[],planets:[],stars:[],nebula:[],shot:null,phase:'menu',prevPhase:null,particles:[],aiTurns:0,ai:null,acc:0,aiming:false};
 
@@ -622,7 +623,7 @@ function stepShot(o,dt,bodies=S.planets,aiSim=false){
     // Ein Schuss bleibt gültig, bis er etwas trifft oder das Sonnensystem verlässt
     const cx=o.x-W/2,cy=o.y-H/2;
     if(cx*cx+cy*cy>OUT_R*OUT_R)return{type:'out'};
-    if(o.t>MAX_FLIGHT)return{type:'time'};
+    if(o.t>(o.mf||S.maxFlight)*SIM_SPEED)return{type:'time'}; // Selbstzerstörung nach eingestellter Zeit (Sekunden echter Zeit)
   }
   return null;
 }
@@ -635,7 +636,7 @@ function fire(){
   if(S.phase!=='aim'&&S.phase!=='ai')return;
   if(isOnline()&&!humanAim())return;
   const pl=S.players[S.turn],o=launch(S.turn,pl.angle,pl.power);
-  const init={x:o.x,y:o.y,vx:o.vx,vy:o.vy,owner:S.turn};
+  const init={x:o.x,y:o.y,vx:o.vx,vy:o.vy,owner:S.turn,mf:S.maxFlight}; // mf: Selbstzerstörungszeit des Schützen gilt für beide
   // online werden die exakten Startwerte übertragen, beide Browser rechnen dann identisch
   if(isOnline())netSend({k:'fire',init,a:pl.angle,p:pl.power});
   startShot(init);
@@ -888,7 +889,7 @@ function readSettings(){
   S.aiLvl=$('aiLvl').value;S.aiType=$('aiType').value;
   if(isOnline())S.shipTypes[NET.seat]=validShip($('ship0').value);
   else S.shipTypes=[validShip($('ship0').value),validShip($('ship1').value)];S.nPlanets=+$('np').value;S.keepTrails=$('trails').checked;
-  S.sun=$('sun').checked;S.nBH=+$('bh').value;S.bhHidden=$('bhHidden').checked;
+  S.sun=$('sun').checked;S.nBH=+$('bh').value;S.maxFlight=+$('maxFlight').value||180;S.bhHidden=$('bhHidden').checked;
   S.flySound=$('flySound').checked;
 }
 function startGame(){
@@ -1203,13 +1204,13 @@ function startOnlineGame(){
 // lange Flugbahnen für die Übertragung ausdünnen
 function thin(pts,max){if(pts.length<=max)return pts;const k=Math.ceil(pts.length/max);return pts.filter((_,i)=>i%k===0||i===pts.length-1);}
 function snapshot(){
-  return{k:'state',planets:S.planets.map(({_sprite,_sc,...p})=>p),ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,
+  return{k:'state',planets:S.planets.map(({_sprite,_sc,...p})=>p),ships:S.ships,starter:S.starter,turn:S.turn,scores:S.scores,maxFlight:S.maxFlight,
     players:S.players.map(p=>({angle:p.angle,power:p.power,trails:p.trails.map(t=>thin(t,250))})),
     phase:S.phase==='over'?'over':'aim'};
 }
 function applyState(d){
   S.planets=d.planets||[];S.ships=d.ships||[];S.starter=d.starter|0;S.turn=d.turn|0;
-  S.scores=d.scores||[0,0];
+  S.scores=d.scores||[0,0];if(d.maxFlight>0)S.maxFlight=+d.maxFlight;
   (d.players||[]).forEach((p,i)=>{S.players[i].angle=p.angle;S.players[i].power=p.power;S.players[i].trails=p.trails||[];});
   S.stars=Array.from({length:280},()=>({x:Math.random(),y:Math.random(),r:rnd(.3,1.4),a:rnd(.25,1)}));
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
