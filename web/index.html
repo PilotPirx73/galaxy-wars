@@ -110,7 +110,7 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
     <label id="ship1Row"><span id="ship1Lbl">Raumschiff Spieler 2</span><span class="shipPick"><canvas id="ship1Prev" width="80" height="80"></canvas><select id="ship1"></select></span></label>
     <label>Planeten <span><input type="range" id="np" min="1" max="10" value="6"> <b id="npv">6</b></span></label>
     <label>Sonne in der Mitte <input type="checkbox" id="sun" checked></label>
-    <label>Schwarze Löcher <select id="bh"><option value="0">Keine</option><option value="1" selected>1</option><option value="2">2</option></select></label>
+    <label>Schwarze Löcher <span><input type="range" id="bh" min="0" max="10" value="1"> <b id="bhv">1</b></span></label>
     <label>Schwarze Löcher versteckt <input type="checkbox" id="bhHidden" checked></label>
     <label>Fluggeräusch <input type="checkbox" id="flySound" checked></label>
     <label>Alte Flugbahnen zeigen <input type="checkbox" id="trails" checked></label>
@@ -276,29 +276,45 @@ function setMuted(m){
 function newLevel(){
   S.ships=[{x:rnd(90,320),y:rnd(140,H-140),dead:false},{x:rnd(W-320,W-90),y:rnd(140,H-140),dead:false}];
   S.planets=[];
+  // Verteilung über das ganze Feld: für jedes Objekt viele gültige Kandidaten würfeln und den nehmen,
+  // der am weitesten von allem anderen entfernt ist (so ballt sich nichts in der Mitte)
   const place=(r,x0,x1,y0,y1,gap,shipGap)=>{
-    for(let t=0;t<3000;t++){
+    let best=null,bestScore=-1e9,found=0;
+    for(let t=0;t<4000&&found<40;t++){
       const x=rnd(x0,x1),y=rnd(Math.max(y0,r+25),Math.min(y1,H-r-25));
-      if(S.planets.some(p=>Math.hypot(p.x-x,p.y-y)<p.r+r+gap+(p.type!=='planet'?60:0)))continue;
-      if(S.ships.some(s=>Math.hypot(s.x-x,s.y-y)<r+shipGap))continue;
-      return{x,y};
+      let free=1e9,ok=true;
+      for(const p of S.planets){
+        const d=Math.hypot(p.x-x,p.y-y)-p.r-r;
+        if(d<gap+(p.type!=='planet'?60:0)){ok=false;break;}
+        free=Math.min(free,d);
+      }
+      if(!ok)continue;
+      for(const s of S.ships){
+        const d=Math.hypot(s.x-x,s.y-y)-r;
+        if(d<shipGap){ok=false;break;}
+        free=Math.min(free,d*1.3);
+      }
+      if(!ok)continue;
+      found++;
+      if(free>bestScore){bestScore=free;best={x,y};}
     }
-    return null;
+    return best;
   };
   if(S.sun){
-    const r=rnd(70,88),pos=place(r,W/2-120,W/2+120,H/2-160,H/2+160,0,200);
+    const r=rnd(70,88),pos=place(r,W/2-260,W/2+260,H/2-200,H/2+200,0,220);
     if(pos)S.planets.push({type:'sun',...pos,r,m:r*r*r*1.5});
   }
-  for(let i=0;i<S.nBH;i++){
-    const pos=place(14,340,W-340,0,H,90,220);
-    if(pos)S.planets.push({type:'bh',...pos,r:14,m:62*62*62*1.7,revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});
-  }
-  for(let i=0;i<S.nPlanets;i++){
-    const r=rnd(22,70),look=planetLook(r);
+  // große Planeten zuerst, dann füllen die kleinen die Lücken
+  const looks=Array.from({length:S.nPlanets},()=>{const r=rnd(22,70);return{r,look:planetLook(r)};}).sort((a,b)=>b.r-a.r);
+  for(const {r,look} of looks){
     // Ringe zählen für die Physik nicht, sollen aber nicht in Nachbarplaneten ragen
-    const pos=place(look.ring?r*1.45:r,260,W-260,0,H,35,90);
+    const pos=place(look.ring?r*1.45:r,200,W-200,0,H,35,100);
     if(!pos)continue;
     S.planets.push({type:'planet',...pos,r,m:r*r*r*look.dens,...look});
+  }
+  for(let i=0;i<S.nBH;i++){
+    const pos=place(14,260,W-260,0,H,60,200);
+    if(pos)S.planets.push({type:'bh',...pos,r:14,m:62*62*62*1.7,revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});
   }
   S.stars=Array.from({length:280},()=>({x:Math.random(),y:Math.random(),r:rnd(.3,1.4),a:rnd(.25,1)}));
   S.nebula=Array.from({length:3},()=>({x:Math.random(),y:Math.random(),r:rnd(.25,.5),h:Math.floor(rnd(180,320))}));
@@ -945,6 +961,7 @@ const validShip=v=>SHIP_TYPES.some(t=>t[0]===v)?v:'pfeil';
 $('mode').onchange=updateMenu;
 updateMenu();
 $('np').oninput=()=>$('npv').textContent=$('np').value;
+$('bh').oninput=()=>$('bhv').textContent=$('bh').value;
 $('start').onclick=startGame;$('resume').onclick=resume;
 $('menuBtn').onclick=showMenu;
 $('muteBtn').onclick=()=>setMuted(!SFX.muted);
