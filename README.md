@@ -18,6 +18,8 @@ Ein rundenbasiertes Artillerie-Duell im Weltraum: Zwei Raumschiffe beschießen s
 
 ## Zwei Versionen
 
+> **Hinweis:** Die Desktop-Version ist älter und wird nicht mehr weiterentwickelt. Aktuell ist nur die Browser-Version; neue Funktionen wie Online-Modus, Chat, Raumschiff-Typen, Zoom und die heutigen Schussregeln gibt es nur dort.
+
 | | Browser-Version (`web/`) | Desktop-Version (`desktop/`) |
 |---|---|---|
 | Technik | Eine einzige HTML-Datei, kein Build nötig | Rust mit [macroquad](https://github.com/not-fl3/macroquad) |
@@ -55,6 +57,8 @@ Beide Versionen haben dieselben Spielelemente. Die Browser-Version hat zusätzli
 | Esc | Menü |
 
 ## Desktop-Version bauen
+
+> **Hinweis:** Die Desktop-Version ist älter und wird nicht mehr weiterentwickelt. Aktuell ist nur die Browser-Version; neue Funktionen wie Online-Modus, Chat, Raumschiff-Typen, Zoom und die heutigen Schussregeln gibt es nur dort.
 
 Voraussetzung: [Rust](https://rustup.rs).
 
