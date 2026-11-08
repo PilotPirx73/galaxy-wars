@@ -16,6 +16,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:
 #panel{position:fixed;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 22px;padding:10px 16px 12px;background:var(--panel);border-top:2px solid var(--p1);z-index:2}
 #panel label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 #panel input[type=range]{width:min(190px,34vw);accent-color:var(--p1)}
+.nudge{display:none}
+@media(pointer:coarse){#panel .nudge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:34px;padding:0;font-size:15px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}}
 #lastShot{flex:none;width:19ch;font:11px/14px ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(min-width:1100px){#panel{flex-wrap:nowrap;gap:10px 14px}#panel label{flex:0 1 auto;min-width:0;white-space:nowrap}#panel input[type=range]{width:auto;flex:1 1 150px;min-width:40px;max-width:190px}#panel button{white-space:nowrap;flex:none}}
 #panel input[type=number]{width:92px;background:#0b0e1f;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;font-size:13px}
@@ -52,6 +54,8 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 #toast.on{opacity:1}
 @media (max-height:500px){ /* Handy quer: kompakte, einzeilige Bedienleiste für ein größeres Spielfeld */
 #panel{gap:6px 10px;padding:5px 10px 6px}#pname,#angN,#powN{display:none}#panel input[type=range]{width:min(140px,17vw)}#panel label{font-size:12px;gap:6px}#panel button{padding:5px 10px}#fire{padding:6px 12px}#hud{padding:5px 12px;font-size:12px}#status{font-size:11px}}
+@media (max-height:500px) and (pointer:coarse){ /* Handy quer: Pfeilknöpfe passen mit in die eine Zeile */
+#panel{flex-wrap:nowrap;gap:5px 6px}#panel label{font-size:0;gap:3px;flex:1 1 auto;min-width:0}#panel label::before{font-size:13px;color:var(--muted)}#panel label:nth-of-type(1)::before{content:'∠'}#panel label:nth-of-type(2)::before{content:'v'}#panel input[type=range]{flex:1 1 60px;width:auto;min-width:30px}#panel .nudge{min-width:32px;min-height:32px}#panel button{flex:none;padding:5px 8px}#lastShot{font-size:10px;line-height:12px;width:18ch}}
 @media (max-width:520px){#hud{font-size:12px;padding:8px 10px}#status{font-size:11px;padding:0 6px}#toast{font-size:12px;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .card input[type=text]{font:inherit;background:#0b0e1f;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:160px}
 #onlineBox{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px}
@@ -83,8 +87,8 @@ button:disabled,input:disabled{opacity:.4;cursor:default}
 <div id="toast"></div>
 <div id="panel">
   <span id="pname">Spieler 1</span>
-  <label>Winkel <input type="range" id="ang" min="0" max="359.999" step="0.001"><input type="number" id="angN" step="0.001" min="0" max="360"></label>
-  <label>Geschwindigkeit <input type="range" id="pow" min="0" max="100" step="0.001"><input type="number" id="powN" step="0.001" min="0" max="100"></label>
+  <label>Winkel <button type="button" class="nudge" data-k="a" data-d="-1" aria-label="Winkel kleiner">◀</button><input type="range" id="ang" min="0" max="359.999" step="0.001"><button type="button" class="nudge" data-k="a" data-d="1" aria-label="Winkel größer">▶</button><input type="number" id="angN" step="0.001" min="0" max="360"></label>
+  <label>Geschwindigkeit <button type="button" class="nudge" data-k="p" data-d="-1" aria-label="Geschwindigkeit kleiner">◀</button><input type="range" id="pow" min="0" max="100" step="0.001"><button type="button" class="nudge" data-k="p" data-d="1" aria-label="Geschwindigkeit größer">▶</button><input type="number" id="powN" step="0.001" min="0" max="100"></label>
   <button id="fire">Feuer!</button>
   <span class="zoomGrp"><button id="zoomOut" title="Herauszoomen (−)">−</button><button id="zoomFit" title="Alle Bahnen zeigen (Z)">⤢</button><button id="zoomIn" title="Hineinzoomen (+)">+</button></span>
   <button id="muteBtn" title="Ton an/aus (M)">🔊</button>
@@ -888,6 +892,7 @@ function syncPanel(){
   showLastShots();
   const dis=!humanAim(),flying=S.phase==='flying';
   for(const id of['ang','angN','pow','powN'])$(id).disabled=dis;
+  document.querySelectorAll('.nudge').forEach(b=>{b.disabled=dis;});
   $('fire').disabled=dis||flying; // ein fliegender Schuss lässt sich nicht abbrechen
   $('fire').textContent=flying?'Fliegt …':'Feuer!';
   if(flying)$('fire').style.background=COLORS[S.shot?S.shot.owner:S.turn];
@@ -999,6 +1004,22 @@ function setFlySound(on){
 }
 $('flySound').onchange=e=>{S.flySound=e.target.checked;};
 $('showDens').onchange=e=>{S.showDens=e.target.checked;renderBg();};
+// Pfeilknöpfe (Touchgeräte): antippen = 0,1; gedrückt halten = wird immer schneller
+let nudgeTimer=0;
+const nudgeStop=()=>{clearTimeout(nudgeTimer);nudgeTimer=0;};
+document.querySelectorAll('.nudge').forEach(b=>{
+  const dir=+b.dataset.d,isAngle=b.dataset.k==='a';
+  const step=n=>{const pl=S.players[S.turn],f=dir*(n<10?.1:n<30?.5:2);if(isAngle)setAngle(pl.angle+f);else setPower(pl.power+f);};
+  b.addEventListener('pointerdown',e=>{
+    e.preventDefault();nudgeStop();
+    let n=0;step(n++);
+    const rep=()=>{step(n++);nudgeTimer=setTimeout(rep,70);};
+    nudgeTimer=setTimeout(rep,350);
+  });
+  for(const ev of['pointerup','pointercancel','pointerleave'])b.addEventListener(ev,nudgeStop);
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+  b.addEventListener('click',e=>e.preventDefault());
+});
 $('ang').oninput=e=>setAngle(+e.target.value);
 $('pow').oninput=e=>setPower(+e.target.value);
 $('angN').onchange=e=>setAngle(+e.target.value||0);
