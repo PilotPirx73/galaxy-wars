@@ -309,14 +309,14 @@ function newLevel(){
     if(pos)S.planets.push({type:'sun',...pos,r,m:r*r*r*1.5});
   }
   // Schwarze Löcher: Durchmesser und Gravitation werden unabhängig gewürfelt, auch ein kleines kann stark ziehen.
-  // Radius 8 bis 130, große sind selten. Findet ein großes keinen Platz, wird es etwas kleiner.
+  // Radius 8 bis 78, große sind selten. Findet ein großes keinen Platz, wird es etwas kleiner.
   const addBH=r=>{
     for(let t=0;t<14;t++,r=Math.max(8,r*.8)){
       const pos=place(r,260,W-260,0,H,60,200);
       if(pos){S.planets.push({type:'bh',...pos,r,m:62*62*62*1.7*rnd(.3,1.7),revealed:!S.bhHidden,reveal:S.bhHidden?0:1,tilt:rnd(-.5,.5)});return;}
     }
   };
-  const bhR=Array.from({length:S.nBH},()=>8+122*Math.pow(Math.random(),2.5)).sort((a,b)=>b-a);
+  const bhR=Array.from({length:S.nBH},()=>8+70*Math.pow(Math.random(),2.5)).sort((a,b)=>b-a);
   bhR.filter(r=>r>=40).forEach(addBH); // große zuerst, die Planeten verteilen sich dann darum herum
   // große Planeten zuerst, dann füllen die kleinen die Lücken
   const looks=Array.from({length:S.nPlanets},()=>{const r=rnd(22,70);return{r,look:planetLook(r)};}).sort((a,b)=>b.r-a.r);
