@@ -15,3 +15,5 @@ services:
       NOTIFY_URL: "https://ntfy.sh/galaxy-wars-hier-ein-langes-geheimes-wort"
       # optional: IP-Adresse der Besucher in der Benachrichtigung anzeigen
       NOTIFY_SHOW_IP: "false"
+      # ungefährer Ort der Besucher: Der Server fragt dafür ipwho.is. "false" schaltet das ab
+      NOTIFY_SHOW_PLACE: "true"

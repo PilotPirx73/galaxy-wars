@@ -91,6 +91,7 @@ Ohne weitere Einstellungen kann jeder, der deine Adresse kennt, dort Online-Spie
 | `CREATE_PASSWORD` | Nur wer dieses Passwort kennt, kann ein **Online-Spiel erstellen**. Beitreten geht weiter nur mit dem Code bzw. Link des Erstellers, ganz ohne Passwort. Offline-Spielen (gegen den Computer, zu zweit an einem Gerät) bleibt frei. |
 | `NOTIFY_URL` | Push-Nachricht aufs Handy, wenn jemand das Spiel aufruft (höchstens einmal pro halbe Stunde und Besucher), ein Online-Spiel erstellt, beitritt oder ein falsches Passwort probiert. |
 | `NOTIFY_SHOW_IP` | `"true"` zeigt zusätzlich die IP-Adresse des Besuchers in der Nachricht. |
+| `NOTIFY_SHOW_PLACE` | Zeigt den ungefähren Ort des Besuchers (z. B. „Oslo, Norwegen“), auch ohne diesen Eintrag. Dafür schickt der Server die IP-Adresse an den Dienst ipwho.is. `"false"` schaltet das ab. Der Ort ist nur grob, bei VPNs stimmt er nicht. |
 
 Dazu gelten feste Obergrenzen: höchstens 20 Online-Spiele gleichzeitig, 8 Verbindungen pro Absender, und nach 5 falschen Passwörtern 10 Minuten Sperre.
 
@@ -100,7 +101,7 @@ Dazu gelten feste Obergrenzen: höchstens 20 Online-Spiele gleichzeitig, 8 Verbi
 2. In der App auf **+** tippen und ein Thema abonnieren, z. B. `galaxy-wars-` gefolgt von einem langen, zufälligen Wort. Wer das Thema kennt, kann die Nachrichten mitlesen – es wirkt also wie ein Passwort.
 3. Genau dieses Thema in `NOTIFY_URL` eintragen: `https://ntfy.sh/dein-thema`
 
-Die Nachrichten laufen über den öffentlichen Dienst ntfy.sh. Sie enthalten nur Uhrzeit, Ereignis und Spielernamen (und die IP-Adresse nur, wenn du `NOTIFY_SHOW_IP` einschaltest).
+Die Nachrichten laufen über den öffentlichen Dienst ntfy.sh. Sie enthalten Uhrzeit, Ereignis, Spielernamen und den ungefähren Ort (und die IP-Adresse nur, wenn du `NOTIFY_SHOW_IP` einschaltest).
 
 ### Einstellungen auf der Synology eintragen
 

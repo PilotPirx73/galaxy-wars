@@ -7,6 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const net = require('net');
 const { WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT) || 8080;
@@ -19,11 +20,15 @@ const IDLE_ROOM_MS = 12 * 3600e3;    // Raum ohne Aktivität nach 12 h entfernen
 // CREATE_PASSWORD  Passwort zum Erstellen von Online-Spielen (leer = jeder darf erstellen)
 // NOTIFY_URL       Adresse für Push-Benachrichtigungen, z. B. https://ntfy.sh/mein-geheimes-thema
 // NOTIFY_SHOW_IP   „true“: IP-Adresse der Besucher in der Benachrichtigung anzeigen
+// NOTIFY_SHOW_PLACE „false“: keinen ungefähren Ort ermitteln (sonst fragt der Server dafür ipwho.is)
+// PLACE_API        Adresse des Ortsdienstes, Standard https://ipwho.is/
 // MAX_ROOMS        höchstens so viele Online-Spiele gleichzeitig (Standard 20)
 // MAX_CONN_PER_IP  höchstens so viele Verbindungen pro Absender (Standard 8)
 const CREATE_PASSWORD = String(process.env.CREATE_PASSWORD || '');
 const NOTIFY_URL = String(process.env.NOTIFY_URL || '');
 const NOTIFY_SHOW_IP = /^(1|true|ja|yes)$/i.test(process.env.NOTIFY_SHOW_IP || '');
+const NOTIFY_SHOW_PLACE = !/^(0|false|nein|no)$/i.test(process.env.NOTIFY_SHOW_PLACE || '');
+const PLACE_API = String(process.env.PLACE_API || 'https://ipwho.is/');
 const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 20;
 const MAX_CONN_PER_IP = Number(process.env.MAX_CONN_PER_IP) || 8;
 const VISIT_QUIET_MS = 30 * 60e3;    // pro Besucher höchstens eine Aufruf-Meldung je 30 min
@@ -34,7 +39,39 @@ function clientIp(req) {
   const f = String(req.headers['x-forwarded-for'] || '').split(',').pop().trim();
   return f || String(req.headers['x-real-ip'] || '') || req.socket.remoteAddress || '?';
 }
-const who = (ip) => (NOTIFY_SHOW_IP ? ` (${ip})` : '');
+
+// Ungefährer Ort zu einer öffentlichen IP-Adresse; Ergebnisse werden einen Tag gemerkt, höchstens 60 Abfragen pro Stunde
+const placeCache = new Map();
+const placeBudget = { start: 0, used: 0 };
+function isPublicIp(ip) {
+  if (!net.isIP(ip)) return false;
+  return !/^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|::$|f[cd]|fe[89ab])/i.test(ip);
+}
+async function placeOf(rawIp) {
+  const ip = String(rawIp).replace(/^::ffff:/i, '');
+  if (!NOTIFY_SHOW_PLACE || !isPublicIp(ip)) return '';
+  const now = Date.now(), hit = placeCache.get(ip);
+  if (hit && now - hit.t < 24 * 3600e3) return hit.place;
+  if (now - placeBudget.start > 3600e3) { placeBudget.start = now; placeBudget.used = 0; }
+  if (placeBudget.used >= 60) return '';
+  placeBudget.used++;
+  try {
+    const r = await fetch(`${PLACE_API}${encodeURIComponent(ip)}?lang=de&fields=success,city,country`, { signal: AbortSignal.timeout(3000) });
+    const d = await r.json();
+    const place = d && d.success ? [d.city, d.country].filter(Boolean).join(', ').slice(0, 80) : '';
+    if (placeCache.size >= 500) placeCache.clear();
+    placeCache.set(ip, { place, t: now });
+    return place;
+  } catch (e) {
+    console.log('Ortsabfrage fehlgeschlagen:', e.message);
+    return '';
+  }
+}
+// liefert den Zusatz „ (Ort · IP)“ für eine Meldung; schlägt die Abfrage fehl, kommt die Meldung trotzdem
+async function notifyFrom(ip, title, makeText) {
+  const parts = [await placeOf(ip), NOTIFY_SHOW_IP ? ip : ''].filter(Boolean);
+  notify(title, makeText(parts.length ? ` (${parts.join(' · ')})` : ''));
+}
 
 // Push-Benachrichtigung (ntfy-kompatibel: einfacher POST mit Text), Fehler werden nur protokolliert
 function notify(title, text) {
@@ -85,7 +122,7 @@ const server = http.createServer((req, res) => {
     if (now - (lastVisit.get(ip) || 0) > VISIT_QUIET_MS) {
       lastVisit.set(ip, now);
       const join = url.searchParams.get('join');
-      notify('Galaxy Wars: Besuch', join ? `Jemand öffnet einen Einladungslink (${join})${who(ip)}` : `Jemand hat das Spiel aufgerufen${who(ip)}`);
+      notifyFrom(ip, 'Galaxy Wars: Besuch', (w) => (join ? `Jemand öffnet einen Einladungslink (${join})${w}` : `Jemand hat das Spiel aufgerufen${w}`));
     }
   }
   const file = path.resolve(PUBLIC_DIR, '.' + p);
@@ -178,7 +215,7 @@ wss.on('connection', (ws, req) => {
         if (!passwordOk(m.password)) {
           const e = b && Date.now() - b.since < 10 * 60e3 ? b : { n: 0, since: Date.now() };
           e.n++; badPw.set(ip, e);
-          if (e.n === 1 || e.n === 5) notify('Galaxy Wars: falsches Passwort', `Jemand${who(ip)} wollte ohne gültiges Passwort ein Online-Spiel erstellen` + (e.n === 5 ? ' (5 Versuche, jetzt gesperrt)' : ''));
+          if (e.n === 1 || e.n === 5) { const n = e.n; notifyFrom(ip, 'Galaxy Wars: falsches Passwort', (w) => `Jemand${w} wollte ohne gültiges Passwort ein Online-Spiel erstellen` + (n === 5 ? ' (5 Versuche, jetzt gesperrt)' : '')); }
           send(ws, { t: 'error', reason: m.password ? 'Das Passwort stimmt nicht.' : 'Zum Erstellen eines Online-Spiels ist ein Passwort nötig.', needPassword: true });
           return;
         }
@@ -191,7 +228,7 @@ wss.on('connection', (ws, req) => {
         rooms.set(code, room);
         attach(ws, room, 0);
         send(ws, { t: 'created', room: code, seat: 0, token: room.tokens[0], names: room.names });
-        notify('Galaxy Wars: neues Online-Spiel', `${room.names[0] || 'Jemand'}${who(ip)} hat das Spiel ${code} erstellt`);
+        { const n0 = room.names[0] || 'Jemand'; notifyFrom(ip, 'Galaxy Wars: neues Online-Spiel', (w) => `${n0}${w} hat das Spiel ${code} erstellt`); }
         return;
       }
       case 'join': {
@@ -204,7 +241,7 @@ wss.on('connection', (ws, req) => {
         attach(ws, room, 1);
         send(ws, { t: 'joined', room: room.code, seat: 1, token: room.tokens[1], names: room.names, peer: online(room.seats[0]) });
         send(room.seats[0], { t: 'peer-joined', names: room.names });
-        notify('Galaxy Wars: Mitspieler beigetreten', `${room.names[1] || 'Jemand'}${who(ip)} spielt jetzt im Spiel ${room.code} gegen ${room.names[0] || 'den Ersteller'}`);
+        { const n1 = room.names[1] || 'Jemand', n0 = room.names[0] || 'den Ersteller', rc = room.code; notifyFrom(ip, 'Galaxy Wars: Mitspieler beigetreten', (w) => `${n1}${w} spielt jetzt im Spiel ${rc} gegen ${n0}`); }
         return;
       }
       case 'rejoin': {
