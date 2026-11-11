@@ -30,7 +30,8 @@ const VISIT_QUIET_MS = 30 * 60e3;    // pro Besucher höchstens eine Aufruf-Meld
 
 // IP des Besuchers – hinter dem Reverse Proxy der Synology steht sie in X-Forwarded-For / X-Real-IP
 function clientIp(req) {
-  const f = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  // Der letzte Eintrag stammt vom eigenen Reverse-Proxy; alles davor kann der Besucher selbst mitschicken
+  const f = String(req.headers['x-forwarded-for'] || '').split(',').pop().trim();
   return f || String(req.headers['x-real-ip'] || '') || req.socket.remoteAddress || '?';
 }
 const who = (ip) => (NOTIFY_SHOW_IP ? ` (${ip})` : '');
